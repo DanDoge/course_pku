@@ -1,0 +1,297 @@
+#######################################################################
+# Test for copying block of size 63;
+#######################################################################
+	.pos 0
+main:	irmovl Stack, %esp  	# Set up stack pointer
+	irmovl Stack, %ebp  	# Set up base pointer
+
+	# Set up arguments for copy function and then invoke it
+	irmovl $63, %eax		# src and dst have 63 elements
+	pushl %eax
+	irmovl dest, %eax	# dst array
+	pushl %eax
+	irmovl src, %eax	# src array
+	pushl %eax
+	call ncopy
+	halt			# should halt with num nonzeros in %eax
+StartFun:
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len ints to dst.
+# Return the number of positive ints (>0) contained in src.
+#
+# Include your name and ID here.
+#
+# Describe how and why you modified the baseline code.
+
+# 1 replace "irmovl $yyy, %xxx opl %xxx, %xxx" 
+#   with "iaddl $yyy, %xxx"
+#   for at least one operation will be saved each time
+#
+# 2 eliminate load-use hazard by loop unrolling and
+#   reading more than one number a time
+#
+# 3 unrool what's remained(the last 1, 2 or 3)
+#   to optimize its performance when n is small
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+ncopy:	pushl %ebp		# Save old frame pointer
+	rrmovl %esp,%ebp	# Set up new frame pointer
+	pushl %esi		# Save callee-save regs
+	pushl %ebx
+	pushl %edi
+	mrmovl 8(%ebp),%ebx	# src
+	mrmovl 16(%ebp),%edx	# len
+	mrmovl 12(%ebp),%ecx	# dst
+
+##################################################################
+# You can modify this portion
+# simply use iaddl   ==> 13.96
+# by 3               ==> 10.96
+# by 4               ==> 10.25
+# remained unrolling ==> 9.52
+	# Loop header
+	xorl %eax,%eax		# count = 0;
+	iaddl $-4,%edx		# len - 4 <= 0?
+	jl  NotDone		# if so, goto NotDone:
+
+Loop:	mrmovl (%ebx), %esi	# read val from src...
+	mrmovl 4(%ebx),%edi     # read val+1 from src+1 and no load-use hazard
+	rmmovl %esi, (%ecx)	# ...and store it to dst
+	andl %esi, %esi		# val <= 0?
+	jle Npos1		# if so, goto Npos1:
+	iaddl  $1, %eax		# count++
+Npos1:
+	mrmovl 8(%ebx),%esi     # read val+2 from src+2
+	rmmovl %edi,4(%ecx)	# write back, no load-use hazard
+	andl   %edi,%edi        # and repeat this
+	jle Npos2
+	iaddl  $1, %eax
+Npos2:
+	mrmovl 0xc(%ebx),%edi
+	rmmovl %esi,8(%ecx)
+	andl   %esi,%esi
+	jle Npos3:
+	iaddl  $1, %eax
+Npos3:
+	rmmovl %edi,0xc(%ecx)
+	andl   %edi,%edi
+	jle Npos
+	iaddl  $1, %eax
+Npos:
+	iaddl $-4, %edx		# len -= 4
+	iaddl $0x10, %ebx	# src += 4
+	iaddl $0x10, %ecx	# dst += 4
+	andl %edx,%edx		# len >= 0? ('cause we substract len first
+				#            it may equal zero)
+	jge Loop		# if so, goto Loop:
+
+# len = 1, 2, 3 falls here
+# also use loop unrolling
+NotDone:
+	iaddl $3,%edx		# len + 3 < 0?
+				# (len + 4 is true len, and substract it by 1)
+	jl  Done		# if so, goto Done:
+
+remain1:
+	mrmovl (%ebx), %esi	# read val from src...
+	mrmovl 4(%ebx),%edi     # may out of bound, but it's fine
+				# because won't write here till remain2
+				# where does a bound check
+	rmmovl %esi, (%ecx)	# ...and store it to dst
+	andl %esi, %esi		# val <= 0?
+	jle remain2		# if so, goto Npos:
+	iaddl  $1, %eax		# count++
+remain2:
+	iaddl $-1,%edx          # bound check
+	jl  Done                # and repeat twice
+	rmmovl %edi, 4(%ecx)
+	mrmovl 8(%ebx),%esi
+	andl %edi,%edi
+	jle remain3
+	iaddl  $1, %eax
+remain3:
+	iaddl $-1,%edx
+	jl  Done
+	rmmovl %esi,8(%ecx)
+	andl %esi,%esi
+	jle Done
+	iaddl  $1, %eax
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	popl %edi               # Restore callee-save registers
+	popl %ebx
+	popl %esi
+	rrmovl %ebp, %esp
+	popl %ebp
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */
+EndFun:
+
+###############################
+# Source and destination blocks
+###############################
+	.align 4
+src:
+	.long -1
+	.long 2
+	.long 0
+	.long 4
+	.long -5
+	.long 6
+	.long 7
+	.long 8
+	.long -9
+	.long -10
+	.long 0
+	.long -12
+	.long 0
+	.long 14
+	.long 15
+	.long 16
+	.long 17
+	.long 18
+	.long -19
+	.long 20
+	.long -21
+	.long 22
+	.long -23
+	.long 0
+	.long 25
+	.long 26
+	.long -27
+	.long -28
+	.long 29
+	.long -30
+	.long -31
+	.long -32
+	.long -33
+	.long -34
+	.long -35
+	.long -36
+	.long 37
+	.long 38
+	.long -39
+	.long -40
+	.long -41
+	.long 42
+	.long -43
+	.long 44
+	.long 45
+	.long 46
+	.long 0
+	.long 48
+	.long 0
+	.long 50
+	.long 51
+	.long 0
+	.long -53
+	.long 54
+	.long 55
+	.long 0
+	.long -57
+	.long -58
+	.long 59
+	.long 60
+	.long 0
+	.long 62
+	.long 63
+	.long 0xbcdefa # This shouldn't get moved
+
+	.align 16
+Predest:
+	.long 0xbcdefa
+dest:
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+	.long 0xcdefab
+Postdest:
+	.long 0xdefabc
+
+.align 4
+# Run time stack
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+	.long 0
+
+Stack:

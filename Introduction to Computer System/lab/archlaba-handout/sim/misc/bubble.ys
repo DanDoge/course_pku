@@ -1,0 +1,86 @@
+# Execution begins at address 0
+	.pos 0
+init:	irmovl Stack, %esp  	# Set up stack pointer
+	irmovl Stack, %ebp  	# Set up base pointer
+	call Main		# Execute main program
+	halt			# Terminate program
+
+# Sample linked list
+.align 4
+array:
+ele1:
+    .long 0x00a
+ele2:
+    .long 0x0b0
+ele3:
+    .long 0xc00
+ele4:
+    .long 0xa00
+ele5:
+    .long 0x00c
+
+Main:	pushl %ebp
+	rrmovl %esp,%ebp
+	irmovl 0x5,%edx
+	pushl %edx
+	irmovl array,%edx
+	pushl %edx
+	call bubble_a
+	rrmovl %ebp,%esp
+	popl %ebp
+	ret
+
+/* $begin sum-ys */
+bubble_a:
+     	pushl  %esi
+      	pushl  %ebx
+     	mrmovl 0xc(%esp),%esi
+     	mrmovl 0x10(%esp),%eax
+	irmovl 0x1,%edi
+	rrmovl %eax,%ebx
+	subl   %edi,%ebx
+      	jmp    L1
+L3:
+	irmovl 0x4,%edi
+      	addl   %edi,%edx
+	irmovl 0x1,%edi
+       	addl   %edi,%eax
+      	jmp    L2
+L6:
+      	rrmovl %esi,%edx
+   	xorl   %eax,%eax
+L2:
+	rrmovl %ecx,%edi
+       	subl   %eax,%edi
+      	jg     L3
+      	mrmovl (%edx),%eax
+	irmovl 0x4,%edi
+	addl   %edx,%edi
+	mrmovl (%edi),%edi
+	subl   %edi,%eax
+        jg     L4
+       	rmmovl %eax,0x4(%edx)
+L4:
+	irmovl 0x1,%edi
+       	addl   %edi,%ecx
+      	jmp    L5
+L7:
+     	xorl   %ecx,%ecx
+L5:
+	rrmovl %ecx,%edi
+    	subl   %ebx,%edi
+      	jl     L6
+	irmovl 0x1,%edi
+        subl   %edi,%ebx
+L1:
+	irmovl 0x0,%edi
+       	subl   %edi,%ebx
+     	jg     L7
+       	popl   %ebx
+       	popl   %esi
+       	ret
+/* $end sum-ys */
+
+# The stack starts here and grows to lower addresses
+	.pos 0x100
+Stack:

@@ -1,0 +1,33 @@
+0000000000400fc9 <phase_2>:
+  400fc9:	53                   	push   %rbx
+  400fca:	48 83 ec 20          	sub    $0x20,%rsp
+  400fce:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  400fd5:	00 00
+  400fd7:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
+  400fdc:	31 c0                	xor    %eax,%eax
+  400fde:	48 89 e6             	mov    %rsp,%rsi
+  400fe1:	e8 43 08 00 00       	callq  401829 <read_six_numbers>
+  400fe6:	83 3c 24 01          	cmpl   $0x1,(%rsp)// if (%rsp == 1) ==> safe;//if a[1] == 1 ==> safe;
+  400fea:	74 05                	je     400ff1 <phase_2+0x28>
+  400fec:	e8 02 08 00 00       	callq  4017f3 <explode_bomb>
+  400ff1:	bb 01 00 00 00       	mov    $0x1,%ebx// for(int tmp = 1; tmp < 5; tmp += 1)
+  400ff6:	eb 1a                	jmp    401012 <phase_2+0x49>
+  400ff8:	48 63 d3             	movslq %ebx,%rdx
+  400ffb:	8d 43 ff             	lea    -0x1(%rbx),%eax
+  400ffe:	48 98                	cltq
+  401000:	8b 04 84             	mov    (%rsp,%rax,4),%eax//%eax = *(rsp + 4 * (tmp - 1));
+  401003:	01 c0                	add    %eax,%eax//%eax *= 2;
+  401005:	39 04 94             	cmp    %eax,(%rsp,%rdx,4)//if (eax == *(rsp + tmp * 4)) ==> safe;
+  401008:	74 05                	je     40100f <phase_2+0x46>
+  40100a:	e8 e4 07 00 00       	callq  4017f3 <explode_bomb>
+  40100f:	83 c3 01             	add    $0x1,%ebx
+  401012:	83 fb 05             	cmp    $0x5,%ebx
+  401015:	7e e1                	jle    400ff8 <phase_2+0x2f>
+  401017:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
+  40101c:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  401023:	00 00
+  401025:	74 05                	je     40102c <phase_2+0x63>
+  401027:	e8 d4 fb ff ff       	callq  400c00 <__stack_chk_fail@plt>
+  40102c:	48 83 c4 20          	add    $0x20,%rsp
+  401030:	5b                   	pop    %rbx
+  401031:	c3                   	retq

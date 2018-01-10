@@ -1,0 +1,82 @@
+# Execution begins at address 0 
+	.pos 0
+init:	irmovl Stack, %esp  	# Set up stack pointer
+	irmovl Stack, %ebp  	# Set up base pointer
+	call Main		# Execute main program
+	halt			# Terminate program
+
+.align 4
+# Source block
+src:
+    .long 0x00a
+    .long 0x0b0
+    .long 0xc00
+# Destination
+dest:
+    .long 0x111
+    .long 0x222
+    .long 0x333
+
+
+Main:	pushl  %ebp
+	rrmovl %esp,%ebp
+	irmovl 3,%edx
+	pushl  %edx
+	irmovl dest,%edx
+	pushl  %edx
+	irmovl src,%edx
+	pushl  %edx
+	call   copy_block
+	rrmovl %ebp,%esp
+	popl   %ebp
+	ret
+
+/* $begin copy_block */
+copy_block:
+    	pushl  %ebp
+    	rrmovl %esp,%ebp
+
+	irmovl 0x10,%ecx
+  	subl   %ecx,%esp
+	irmovl 0x8,%ecx
+	rrmovl %ebp,%esi
+	subl   %ecx,%esi               // esi = ebp - 8
+	irmovl 0x0,%ecx
+  	rmmovl %ecx,(%esi)
+     	jmp    L1
+L2:
+      	mrmovl 0x8(%ebp),%eax
+	irmovl 0x4,%edx
+	addl   %eax,%edx
+     	rmmovl %edx,0x8(%ebp)
+    	mrmovl (%eax),%eax
+       	rmmovl %eax,0x4(%esi)
+     	mrmovl 0xc(%ebp),%eax
+	irmovl 0x4,%edx
+	addl   %eax,%edx
+    	rmmovl %edx,0xc(%ebp)
+      	mrmovl 0x4(%esi),%edx
+       	rmmovl %edx,(%eax)
+      	mrmovl 0x4(%esi),%eax
+	mrmovl (%esi),%ecx
+	xorl   %eax,%ecx
+	rmmovl %ecx,(%esi)
+	irmovl 0x1,%ecx
+	mrmovl 0x10(%ebp),%edi
+	subl   %ecx,%edi
+	rmmovl %edi,0x10(%ebp)
+L1:
+	irmovl 0x0,%ecx
+	mrmovl 0x10(%ebp),%edi
+	subl   %ecx,%edi
+     	jg     L2
+    	mrmovl (%esi),%eax
+
+   	rrmovl %ebp,%esp
+	popl   %ebp
+  	ret
+/* $end copy_block */
+
+# The stack starts here and grows to lower addresses
+	.pos 0x200
+Stack:

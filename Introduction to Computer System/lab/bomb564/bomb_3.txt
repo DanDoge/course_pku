@@ -1,0 +1,94 @@
+0000000000401032 <phase_3>:
+  401032:	48 83 ec 28          	sub    $0x28,%rsp
+  401036:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax//useless
+  40103d:	00 00
+  40103f:	48 89 44 24 18       	mov    %rax,0x18(%rsp)
+  401044:	31 c0                	xor    %eax,%eax
+  401046:	4c 8d 44 24 14       	lea    0x14(%rsp),%r8
+  40104b:	48 8d 4c 24 0f       	lea    0xf(%rsp),%rcx
+  401050:	48 8d 54 24 10       	lea    0x10(%rsp),%rdx
+  401055:	be 66 29 40 00       	mov    $0x402966,%esi//"%d %c %d"
+  40105a:	e8 61 fc ff ff       	callq  400cc0 <__isoc99_sscanf@plt>
+  40105f:	83 f8 02             	cmp    $0x2,%eax//more than two arguments
+  401062:	7f 05                	jg     401069 <phase_3+0x37>
+  401064:	e8 8a 07 00 00       	callq  4017f3 <explode_bomb>
+  401069:	83 7c 24 10 07       	cmpl   $0x7,0x10(%rsp)//firstnum > 7 ==> boom!
+  40106e:	0f 87 d7 00 00 00    	ja     40114b <phase_3+0x119>
+  401074:	8b 44 24 10          	mov    0x10(%rsp),%eax
+  401078:	ff 24 c5 80 29 40 00 	jmpq   *0x402980(,%rax,8)
+  //firstnum == 0 secondnum == 0x356(854) char = 0x75(u)  one possible ans
+  40107f:	81 7c 24 14 56 03 00 	cmpl   $0x356,0x14(%rsp)
+  401086:	00
+  401087:	0f 84 ca 00 00 00    	je     401157 <phase_3+0x125>//secondnum == 0x356
+  40108d:	e8 61 07 00 00       	callq  4017f3 <explode_bomb>
+  401092:	b8 75 00 00 00       	mov    $0x75,%eax
+  401097:	e9 f1 00 00 00       	jmpq   40118d <phase_3+0x15b>
+  40109c:	81 7c 24 14 62 03 00 	cmpl   $0x362,0x14(%rsp)
+  4010a3:	00
+  4010a4:	0f 84 b4 00 00 00    	je     40115e <phase_3+0x12c>
+  4010aa:	e8 44 07 00 00       	callq  4017f3 <explode_bomb>
+  4010af:	b8 69 00 00 00       	mov    $0x69,%eax
+  4010b4:	e9 d4 00 00 00       	jmpq   40118d <phase_3+0x15b>
+  4010b9:	81 7c 24 14 db 02 00 	cmpl   $0x2db,0x14(%rsp)
+  4010c0:	00
+  4010c1:	0f 84 9e 00 00 00    	je     401165 <phase_3+0x133>
+  4010c7:	e8 27 07 00 00       	callq  4017f3 <explode_bomb>
+  4010cc:	b8 73 00 00 00       	mov    $0x73,%eax
+  4010d1:	e9 b7 00 00 00       	jmpq   40118d <phase_3+0x15b>
+  4010d6:	81 7c 24 14 05 02 00 	cmpl   $0x205,0x14(%rsp)
+  4010dd:	00
+  4010de:	0f 84 88 00 00 00    	je     40116c <phase_3+0x13a>
+  4010e4:	e8 0a 07 00 00       	callq  4017f3 <explode_bomb>
+  4010e9:	b8 79 00 00 00       	mov    $0x79,%eax
+  4010ee:	e9 9a 00 00 00       	jmpq   40118d <phase_3+0x15b>
+  4010f3:	81 7c 24 14 9c 03 00 	cmpl   $0x39c,0x14(%rsp)
+  4010fa:	00
+  4010fb:	74 76                	je     401173 <phase_3+0x141>
+  4010fd:	e8 f1 06 00 00       	callq  4017f3 <explode_bomb>
+  401102:	b8 74 00 00 00       	mov    $0x74,%eax
+  401107:	e9 81 00 00 00       	jmpq   40118d <phase_3+0x15b>
+  40110c:	81 7c 24 14 a9 00 00 	cmpl   $0xa9,0x14(%rsp)
+  401113:	00
+  401114:	74 64                	je     40117a <phase_3+0x148>
+  401116:	e8 d8 06 00 00       	callq  4017f3 <explode_bomb>
+  40111b:	b8 66 00 00 00       	mov    $0x66,%eax
+  401120:	eb 6b                	jmp    40118d <phase_3+0x15b>
+  401122:	81 7c 24 14 94 00 00 	cmpl   $0x94,0x14(%rsp)
+  401129:	00
+  40112a:	74 55                	je     401181 <phase_3+0x14f>
+  40112c:	e8 c2 06 00 00       	callq  4017f3 <explode_bomb>
+  401131:	b8 65 00 00 00       	mov    $0x65,%eax
+  401136:	eb 55                	jmp    40118d <phase_3+0x15b>
+  401138:	83 7c 24 14 77       	cmpl   $0x77,0x14(%rsp)
+  40113d:	74 49                	je     401188 <phase_3+0x156>
+  40113f:	e8 af 06 00 00       	callq  4017f3 <explode_bomb>
+  401144:	b8 6d 00 00 00       	mov    $0x6d,%eax
+  401149:	eb 42                	jmp    40118d <phase_3+0x15b>
+  40114b:	e8 a3 06 00 00       	callq  4017f3 <explode_bomb>
+  401150:	b8 6d 00 00 00       	mov    $0x6d,%eax
+  401155:	eb 36                	jmp    40118d <phase_3+0x15b>
+  401157:	b8 75 00 00 00       	mov    $0x75,%eax
+  40115c:	eb 2f                	jmp    40118d <phase_3+0x15b>
+  40115e:	b8 69 00 00 00       	mov    $0x69,%eax
+  401163:	eb 28                	jmp    40118d <phase_3+0x15b>
+  401165:	b8 73 00 00 00       	mov    $0x73,%eax
+  40116a:	eb 21                	jmp    40118d <phase_3+0x15b>
+  40116c:	b8 79 00 00 00       	mov    $0x79,%eax
+  401171:	eb 1a                	jmp    40118d <phase_3+0x15b>
+  401173:	b8 74 00 00 00       	mov    $0x74,%eax
+  401178:	eb 13                	jmp    40118d <phase_3+0x15b>
+  40117a:	b8 66 00 00 00       	mov    $0x66,%eax
+  40117f:	eb 0c                	jmp    40118d <phase_3+0x15b>
+  401181:	b8 65 00 00 00       	mov    $0x65,%eax
+  401186:	eb 05                	jmp    40118d <phase_3+0x15b>
+  401188:	b8 6d 00 00 00       	mov    $0x6d,%eax
+  40118d:	3a 44 24 0f          	cmp    0xf(%rsp),%al
+  401191:	74 05                	je     401198 <phase_3+0x166>
+  401193:	e8 5b 06 00 00       	callq  4017f3 <explode_bomb>
+  401198:	48 8b 44 24 18       	mov    0x18(%rsp),%rax
+  40119d:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  4011a4:	00 00
+  4011a6:	74 05                	je     4011ad <phase_3+0x17b>
+  4011a8:	e8 53 fa ff ff       	callq  400c00 <__stack_chk_fail@plt>
+  4011ad:	48 83 c4 28          	add    $0x28,%rsp
+  4011b1:	c3                   	retq

@@ -1,0 +1,37 @@
+0000000000401260 <phase_5>:
+  401260:	53                   	push   %rbx
+  401261:	48 83 ec 10          	sub    $0x10,%rsp
+  401265:	48 89 fb             	mov    %rdi,%rbx
+  401268:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  40126f:	00 00
+  401271:	48 89 44 24 08       	mov    %rax,0x8(%rsp)
+  401276:	31 c0                	xor    %eax,%eax
+  401278:	e8 8e 02 00 00       	callq  40150b <string_length>
+  40127d:	83 f8 06             	cmp    $0x6,%eax
+  401280:	74 05                	je     401287 <phase_5+0x27>//my_input.length() == 6
+  401282:	e8 6c 05 00 00       	callq  4017f3 <explode_bomb>
+  401287:	b8 00 00 00 00       	mov    $0x0,%eax
+  40128c:	eb 17                	jmp    4012a5 <phase_5+0x45>
+  40128e:	48 63 c8             	movslq %eax,%rcx
+  401291:	0f b6 14 0b          	movzbl (%rbx,%rcx,1),%edx
+  401295:	83 e2 0f             	and    $0xf,%edx
+  401298:	0f b6 92 c0 29 40 00 	movzbl 0x4029c0(%rdx),%edx
+  40129f:	88 14 0c             	mov    %dl,(%rsp,%rcx,1)
+  4012a2:	83 c0 01             	add    $0x1,%eax
+  4012a5:	83 f8 05             	cmp    $0x5,%eax
+  4012a8:	7e e4                	jle    40128e <phase_5+0x2e>
+  4012aa:	c6 44 24 06 00       	movb   $0x0,0x6(%rsp)
+  4012af:	be 6f 29 40 00       	mov    $0x40296f,%esi//"flyers"
+  4012b4:	48 89 e7             	mov    %rsp,%rdi
+  4012b7:	e8 64 02 00 00       	callq  401520 <strings_not_equal>
+  4012bc:	85 c0                	test   %eax,%eax
+  4012be:	74 05                	je     4012c5 <phase_5+0x65>
+  4012c0:	e8 2e 05 00 00       	callq  4017f3 <explode_bomb>
+  4012c5:	48 8b 44 24 08       	mov    0x8(%rsp),%rax
+  4012ca:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  4012d1:	00 00
+  4012d3:	74 05                	je     4012da <phase_5+0x7a>
+  4012d5:	e8 26 f9 ff ff       	callq  400c00 <__stack_chk_fail@plt>
+  4012da:	48 83 c4 10          	add    $0x10,%rsp
+  4012de:	5b                   	pop    %rbx
+  4012df:	c3                   	retq

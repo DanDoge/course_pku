@@ -1,0 +1,82 @@
+                      | # Execution begins at address 0 
+  0x000:              | 	.pos 0
+  0x000: 30f400020000 | init:	irmovl Stack, %esp  	# Set up stack pointer
+  0x006: 30f500020000 | 	irmovl Stack, %ebp  	# Set up base pointer
+  0x00c: 802c000000   | 	call Main		# Execute main program
+  0x011: 00           | 	halt			# Terminate program
+                      |
+  0x014:              | .align 4
+                      | # Source block
+  0x014:              | src:
+  0x014: 0a000000     |     .long 0x00a
+  0x018: b0000000     |     .long 0x0b0
+  0x01c: 000c0000     |     .long 0xc00
+                      | # Destination
+  0x020:              | dest:
+  0x020: 11010000     |     .long 0x111
+  0x024: 22020000     |     .long 0x222
+  0x028: 33030000     |     .long 0x333
+                      |
+                      |
+  0x02c: a05f         | Main:	pushl  %ebp
+  0x02e: 2045         | 	rrmovl %esp,%ebp
+  0x030: 30f203000000 | 	irmovl 3,%edx
+  0x036: a02f         | 	pushl  %edx
+  0x038: 30f220000000 | 	irmovl dest,%edx
+  0x03e: a02f         | 	pushl  %edx
+  0x040: 30f214000000 | 	irmovl src,%edx
+  0x046: a02f         | 	pushl  %edx
+  0x048: 8052000000   | 	call   copy_block
+  0x04d: 2054         | 	rrmovl %ebp,%esp
+  0x04f: b05f         | 	popl   %ebp
+  0x051: 90           | 	ret
+                      |
+                      | /* $begin copy_block */
+  0x052:              | copy_block:
+  0x052: a05f         |     	pushl  %ebp
+  0x054: 2045         |     	rrmovl %esp,%ebp
+                      |
+  0x056: 30f110000000 | 	irmovl 0x10,%ecx
+  0x05c: 6114         |   	subl   %ecx,%esp
+  0x05e: 30f108000000 | 	irmovl 0x8,%ecx
+  0x064: 2056         | 	rrmovl %ebp,%esi
+  0x066: 6116         | 	subl   %ecx,%esi               // esi = ebp - 8
+  0x068: 30f100000000 | 	irmovl 0x0,%ecx
+  0x06e: 401600000000 |   	rmmovl %ecx,(%esi)
+  0x074: 70e1000000   |      	jmp    L1
+  0x079:              | L2:
+  0x079: 500508000000 |       	mrmovl 0x8(%ebp),%eax
+  0x07f: 30f204000000 | 	irmovl 0x4,%edx
+  0x085: 6002         | 	addl   %eax,%edx
+  0x087: 402508000000 |      	rmmovl %edx,0x8(%ebp)
+  0x08d: 500000000000 |     	mrmovl (%eax),%eax
+  0x093: 400604000000 |        	rmmovl %eax,0x4(%esi)
+  0x099: 50050c000000 |      	mrmovl 0xc(%ebp),%eax
+  0x09f: 30f204000000 | 	irmovl 0x4,%edx
+  0x0a5: 6002         | 	addl   %eax,%edx
+  0x0a7: 40250c000000 |     	rmmovl %edx,0xc(%ebp)
+  0x0ad: 502604000000 |       	mrmovl 0x4(%esi),%edx
+  0x0b3: 402000000000 |        	rmmovl %edx,(%eax)
+  0x0b9: 500604000000 |       	mrmovl 0x4(%esi),%eax
+  0x0bf: 501600000000 | 	mrmovl (%esi),%ecx
+  0x0c5: 6301         | 	xorl   %eax,%ecx
+  0x0c7: 401600000000 | 	rmmovl %ecx,(%esi)
+  0x0cd: 30f101000000 | 	irmovl 0x1,%ecx
+  0x0d3: 507510000000 | 	mrmovl 0x10(%ebp),%edi
+  0x0d9: 6117         | 	subl   %ecx,%edi
+  0x0db: 407510000000 | 	rmmovl %edi,0x10(%ebp)
+  0x0e1:              | L1:
+  0x0e1: 30f100000000 | 	irmovl 0x0,%ecx
+  0x0e7: 507510000000 | 	mrmovl 0x10(%ebp),%edi
+  0x0ed: 6117         | 	subl   %ecx,%edi
+  0x0ef: 7679000000   |      	jg     L2
+  0x0f4: 500600000000 |     	mrmovl (%esi),%eax
+                      |
+  0x0fa: 2054         |    	rrmovl %ebp,%esp
+  0x0fc: b05f         | 	popl   %ebp
+  0x0fe: 90           |   	ret
+                      | /* $end copy_block */
+                      |
+                      | # The stack starts here and grows to lower addresses
+  0x200:              | 	.pos 0x200
+  0x200:              | Stack:

@@ -1,0 +1,34 @@
+00000000004011e7 <phase_4>:
+  4011e7:	48 83 ec 18          	sub    $0x18,%rsp
+  4011eb:	64 48 8b 04 25 28 00 	mov    %fs:0x28,%rax
+  4011f2:	00 00
+  4011f4:	48 89 44 24 08       	mov    %rax,0x8(%rsp)
+  4011f9:	31 c0                	xor    %eax,%eax
+  4011fb:	48 8d 4c 24 04       	lea    0x4(%rsp),%rcx
+  401200:	48 89 e2             	mov    %rsp,%rdx
+  401203:	be 20 2c 40 00       	mov    $0x402c20,%esi//"%d %d"
+  401208:	e8 b3 fa ff ff       	callq  400cc0 <__isoc99_sscanf@plt>
+  40120d:	83 f8 02             	cmp    $0x2,%eax
+  401210:	75 0c                	jne    40121e <phase_4+0x37>//input two nums
+  401212:	8b 04 24             	mov    (%rsp),%eax
+  401215:	85 c0                	test   %eax,%eax
+  401217:	78 05                	js     40121e <phase_4+0x37>//firstnum < 0 ==> boom!
+  401219:	83 f8 0e             	cmp    $0xe,%eax
+  40121c:	7e 05                	jle    401223 <phase_4+0x3c>//firstnum > 0xe ==> boom!
+  40121e:	e8 d0 05 00 00       	callq  4017f3 <explode_bomb>
+  401223:	ba 0e 00 00 00       	mov    $0xe,%edx
+  401228:	be 00 00 00 00       	mov    $0x0,%esi
+  40122d:	8b 3c 24             	mov    (%rsp),%edi
+  401230:	e8 7d ff ff ff       	callq  4011b2 <func4>
+  401235:	83 f8 15             	cmp    $0x15,%eax//return 0x15 ==> safe! //possible ans is 6
+  401238:	75 07                	jne    401241 <phase_4+0x5a>
+  40123a:	83 7c 24 04 15       	cmpl   $0x15,0x4(%rsp)
+  40123f:	74 05                	je     401246 <phase_4+0x5f>//secondnum == 0x15 ==> safe!
+  401241:	e8 ad 05 00 00       	callq  4017f3 <explode_bomb>
+  401246:	48 8b 44 24 08       	mov    0x8(%rsp),%rax
+  40124b:	64 48 33 04 25 28 00 	xor    %fs:0x28,%rax
+  401252:	00 00
+  401254:	74 05                	je     40125b <phase_4+0x74>
+  401256:	e8 a5 f9 ff ff       	callq  400c00 <__stack_chk_fail@plt>
+  40125b:	48 83 c4 18          	add    $0x18,%rsp
+  40125f:	c3                   	retq

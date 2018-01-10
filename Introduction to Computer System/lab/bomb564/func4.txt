@@ -1,0 +1,24 @@
+00000000004011b2 <func4>:
+  4011b2:	53                   	push   %rbx
+  4011b3:	89 d0                	mov    %edx,%eax
+  4011b5:	29 f0                	sub    %esi,%eax
+  4011b7:	89 c3                	mov    %eax,%ebx
+  4011b9:	c1 eb 1f             	shr    $0x1f,%ebx
+  4011bc:	01 d8                	add    %ebx,%eax
+  4011be:	d1 f8                	sar    %eax
+  4011c0:	8d 1c 06             	lea    (%rsi,%rax,1),%ebx
+  4011c3:	39 fb                	cmp    %edi,%ebx
+  4011c5:	7e 0c                	jle    4011d3 <func4+0x21>
+  4011c7:	8d 53 ff             	lea    -0x1(%rbx),%edx
+  4011ca:	e8 e3 ff ff ff       	callq  4011b2 <func4>
+  4011cf:	01 d8                	add    %ebx,%eax
+  4011d1:	eb 12                	jmp    4011e5 <func4+0x33>
+  4011d3:	39 fb                	cmp    %edi,%ebx
+  4011d5:	7d 0c                	jge    4011e3 <func4+0x31>
+  4011d7:	8d 73 01             	lea    0x1(%rbx),%esi
+  4011da:	e8 d3 ff ff ff       	callq  4011b2 <func4>
+  4011df:	01 d8                	add    %ebx,%eax
+  4011e1:	eb 02                	jmp    4011e5 <func4+0x33>
+  4011e3:	89 d8                	mov    %ebx,%eax
+  4011e5:	5b                   	pop    %rbx
+  4011e6:	c3                   	retq

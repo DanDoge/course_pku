@@ -1,0 +1,86 @@
+                      | # Execution begins at address 0 
+  0x000:              | 	.pos 0
+  0x000: 30f400010000 | init:	irmovl Stack, %esp  	# Set up stack pointer
+  0x006: 30f500010000 | 	irmovl Stack, %ebp  	# Set up base pointer
+  0x00c: 8028000000   | 	call Main		# Execute main program
+  0x011: 00           | 	halt			# Terminate program
+                      |
+                      | # Sample linked list
+  0x014:              | .align 4
+  0x014:              | array:
+  0x014:              | ele1:
+  0x014: 0a000000     |     .long 0x00a
+  0x018:              | ele2:
+  0x018: b0000000     |     .long 0x0b0
+  0x01c:              | ele3:
+  0x01c: 000c0000     |     .long 0xc00
+  0x020:              | ele4:
+  0x020: 000a0000     |     .long 0xa00
+  0x024:              | ele5:
+  0x024: 0c000000     |     .long 0x00c
+                      |
+  0x028: a05f         | Main:	pushl %ebp
+  0x02a: 2045         | 	rrmovl %esp,%ebp
+  0x02c: 30f205000000 | 	irmovl 0x5,%edx
+  0x032: a02f         | 	pushl %edx
+  0x034: 30f214000000 | 	irmovl array,%edx
+  0x03a: a02f         | 	pushl %edx
+  0x03c: 8046000000   | 	call bubble_a
+  0x041: 2054         | 	rrmovl %ebp,%esp
+  0x043: b05f         | 	popl %ebp
+  0x045: 90           | 	ret
+                      |
+                      | /* $begin sum-ys */
+  0x046:              | bubble_a:
+  0x046: a06f         |      	pushl  %esi
+  0x048: a03f         |       	pushl  %ebx
+  0x04a: 50640c000000 |      	mrmovl 0xc(%esp),%esi
+  0x050: 500410000000 |      	mrmovl 0x10(%esp),%eax
+  0x056: 30f701000000 | 	irmovl 0x1,%edi
+  0x05c: 2003         | 	rrmovl %eax,%ebx
+  0x05e: 6173         | 	subl   %edi,%ebx
+  0x060: 70c8000000   |       	jmp    L1
+  0x065:              | L3:
+  0x065: 30f704000000 | 	irmovl 0x4,%edi
+  0x06b: 6072         |       	addl   %edi,%edx
+  0x06d: 30f701000000 | 	irmovl 0x1,%edi
+  0x073: 6070         |        	addl   %edi,%eax
+  0x075: 707e000000   |       	jmp    L2
+  0x07a:              | L6:
+  0x07a: 2062         |       	rrmovl %esi,%edx
+  0x07c: 6300         |    	xorl   %eax,%eax
+  0x07e:              | L2:
+  0x07e: 2017         | 	rrmovl %ecx,%edi
+  0x080: 6107         |        	subl   %eax,%edi
+  0x082: 7665000000   |       	jg     L3
+  0x087: 500200000000 |       	mrmovl (%edx),%eax
+  0x08d: 30f704000000 | 	irmovl 0x4,%edi
+  0x093: 6027         | 	addl   %edx,%edi
+  0x095: 507700000000 | 	mrmovl (%edi),%edi
+  0x09b: 6170         | 	subl   %edi,%eax
+  0x09d: 76a8000000   |         jg     L4
+  0x0a2: 400204000000 |        	rmmovl %eax,0x4(%edx)
+  0x0a8:              | L4:
+  0x0a8: 30f701000000 | 	irmovl 0x1,%edi
+  0x0ae: 6071         |        	addl   %edi,%ecx
+  0x0b0: 70b7000000   |       	jmp    L5
+  0x0b5:              | L7:
+  0x0b5: 6311         |      	xorl   %ecx,%ecx
+  0x0b7:              | L5:
+  0x0b7: 2017         | 	rrmovl %ecx,%edi
+  0x0b9: 6137         |     	subl   %ebx,%edi
+  0x0bb: 727a000000   |       	jl     L6
+  0x0c0: 30f701000000 | 	irmovl 0x1,%edi
+  0x0c6: 6173         |         subl   %edi,%ebx
+  0x0c8:              | L1:
+  0x0c8: 30f700000000 | 	irmovl 0x0,%edi
+  0x0ce: 6173         |        	subl   %edi,%ebx
+  0x0d0: 76b5000000   |      	jg     L7
+  0x0d5: b03f         |        	popl   %ebx
+  0x0d7: b06f         |        	popl   %esi
+  0x0d9: 90           |        	ret
+                      | /* $end sum-ys */
+                      |
+                      | # The stack starts here and grows to lower addresses
+  0x100:              | 	.pos 0x100
+  0x100:              | Stack:

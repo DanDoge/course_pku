@@ -1,0 +1,85 @@
+# Execution begins at address 0 
+	.pos 0
+init:	irmovl Stack, %esp  	# Set up stack pointer
+	irmovl Stack, %ebp  	# Set up base pointer
+	call Main		# Execute main program
+	halt			# Terminate program
+
+# Sample linked list
+.align 4
+linkedlist:
+ele1:
+    .long 0x00a
+    .long ele2
+ele2:
+    .long 0x0b0
+    .long ele3
+ele3:
+    .long 0xc00
+    .long 0
+
+Main:	pushl %ebp
+	rrmovl %esp,%ebp
+	irmovl linkedlist,%edx
+	pushl %edx
+	call rsum_list
+	rrmovl %ebp,%esp
+	popl %ebp
+	ret
+
+/* $begin rsum-ys */
+rsum_list:
+    	pushl  %ebp
+    	rrmovl %esp,%ebp
+	irmovl $0x18,%ecx
+    	subl   %ecx,%esp
+
+	rrmovl %ebp,%ecx          // cmpl   $0x0,0x8(%ebp)
+	irmovl $0x8,%edx
+	addl   %edx,%ecx
+	mrmovl (%ecx),%ecx
+	irmovl $0x0,%edx
+	subl   %edx,%ecx
+
+    	jne    L1
+    	xorl   %eax,%eax
+      	jmp    L2
+L1:
+   	mrmovl 0x8(%ebp),%eax
+      	mrmovl (%eax),%eax
+
+	irmovl $0x10,%edx         // mov    %eax,-0x10(%ebp)
+	rrmovl %ebp,%ecx
+	subl   %edx,%ecx
+	rmmovl %eax,(%ecx)
+
+   	mrmovl 0x8(%ebp),%eax
+  	mrmovl 0x4(%eax),%eax
+	irmovl $0xc,%ecx
+     	subl   %ecx,%esp
+    	pushl  %eax
+    	call   rsum_list
+	irmovl $0x10,%edx
+    	addl   %edx,%esp
+
+	irmovl $0xc,%edx          // mov    %eax,-0xc(%ebp)
+	rrmovl %ebp,%ecx
+	subl   %edx,%ecx
+	rmmovl %eax,(%ecx)
+
+	irmovl $0x10,%ecx         // edi = ebp - 0x10
+	rrmovl %ebp,%edi
+	subl   %ecx,%edi
+
+   	mrmovl (%edi),%edx
+   	mrmovl 0x4(%edi),%eax
+  	addl   %edx,%eax
+L2:
+   	rrmovl %ebp,%esp
+	popl   %ebp
+  	ret
+/* $end rsum-ys */
+
+# The stack starts here and grows to lower addresses
+	.pos 0x200
+Stack:

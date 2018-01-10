@@ -1,0 +1,20 @@
+0000000000401829 <read_six_numbers>://rsi = rsp;
+  401829:	48 83 ec 08          	sub    $0x8,%rsp
+  40182d:	48 89 f2             	mov    %rsi,%rdx
+  401830:	48 8d 76 14          	lea    0x14(%rsi),%rsi
+  401834:	48 8d 42 10          	lea    0x10(%rdx),%rax
+  401838:	48 8d 4a 04          	lea    0x4(%rdx),%rcx
+  40183c:	56                   	push   %rsi//last two in stack
+  40183d:	50                   	push   %rax//
+  40183e:	4c 8d 4a 0c          	lea    0xc(%rdx),%r9
+  401842:	4c 8d 42 08          	lea    0x8(%rdx),%r8
+  401846:	be 14 2c 40 00       	mov    $0x402c14,%esi//"%d %d %d %d %d %d"
+  40184b:	b8 00 00 00 00       	mov    $0x0,%eax
+  401850:	e8 6b f4 ff ff       	callq  400cc0 <__isoc99_sscanf@plt>
+  //argument: string i input, format, rdi, rdi + 4, rdi + 8, rdi + 12, last two in stack
+  401855:	48 83 c4 10          	add    $0x10,%rsp
+  401859:	83 f8 05             	cmp    $0x5,%eax// input more than 5 numbers
+  40185c:	7f 05                	jg     401863 <read_six_numbers+0x3a>
+  40185e:	e8 90 ff ff ff       	callq  4017f3 <explode_bomb>
+  401863:	48 83 c4 08          	add    $0x8,%rsp
+  401867:	c3                   	retq

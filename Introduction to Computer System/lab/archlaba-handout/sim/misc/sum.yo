@@ -1,0 +1,73 @@
+                      | # Execution begins at address 0 
+  0x000:              | 	.pos 0
+  0x000: 30f400010000 | init:	irmovl Stack, %esp  	# Set up stack pointer
+  0x006: 30f500010000 | 	irmovl Stack, %ebp  	# Set up base pointer
+  0x00c: 802c000000   | 	call Main		# Execute main program
+  0x011: 00           | 	halt			# Terminate program
+                      |
+                      | # Sample linked list
+  0x014:              | .align 4
+  0x014:              | linkedlist:
+  0x014:              | ele1:
+  0x014: 0a000000     |     .long 0x00a
+  0x018: 1c000000     |     .long ele2
+  0x01c:              | ele2:
+  0x01c: b0000000     |     .long 0x0b0
+  0x020: 24000000     |     .long ele3
+  0x024:              | ele3:
+  0x024: 000c0000     |     .long 0xc00
+  0x028: 00000000     |     .long 0
+                      |
+  0x02c: a05f         | Main:	pushl %ebp
+  0x02e: 2045         | 	rrmovl %esp,%ebp
+  0x030: 30f214000000 | 	irmovl linkedlist,%edx
+  0x036: a02f         | 	pushl %edx
+  0x038: 8042000000   | 	call sum_list
+  0x03d: 2054         | 	rrmovl %ebp,%esp
+  0x03f: b05f         | 	popl %ebp
+  0x041: 90           | 	ret
+                      |
+                      | /* $begin sum-ys */
+  0x042:              | sum_list:
+  0x042: a05f         |     	pushl  %ebp
+  0x044: 2045         |     	rrmovl %esp,%ebp
+  0x046: 30f110000000 | 	irmovl $16,%ecx
+  0x04c: 6114         |      	subl   %ecx,%esp
+  0x04e: 30f000000000 | 	irmovl $0x0,%eax
+  0x054: 400f00000000 |   	rmmovl %eax,-0x4(%ebp)
+  0x05a: 7099000000   |      	jmp    test
+  0x05f:              | loop:
+  0x05f: 500508000000 |      	mrmovl 0x8(%ebp),%eax
+  0x065: 500000000000 |         mrmovl (%eax),%eax
+                      |
+  0x06b: 2051         | 	rrmovl %ebp,%ecx         // add    %eax,-0x4(%ebp)
+  0x06d: 30f204000000 | 	irmovl 0x4,%edx
+  0x073: 6121         | 	subl   %edx,%ecx
+  0x075: 501100000000 | 	mrmovl (%ecx),%ecx
+  0x07b: 6001         | 	addl   %eax,%ecx
+  0x07d: 2057         | 	rrmovl %ebp,%edi
+  0x07f: 6127         | 	subl   %edx,%edi
+  0x081: 401700000000 | 	rmmovl %ecx,(%edi)
+                      |
+  0x087: 500508000000 |      	mrmovl 0x8(%ebp),%eax
+  0x08d: 500004000000 |     	mrmovl 0x4(%eax),%eax
+  0x093: 400508000000 |    	rmmovl %eax,0x8(%ebp)
+  0x099:              | test:
+  0x099: 501508000000 | 	mrmovl 0x8(%ebp),%ecx    // cmpl   $0x0,0x8(%ebp)
+  0x09f: 30f200000000 | 	irmovl 0x0,%edx
+  0x0a5: 6121         | 	subl   %edx,%ecx
+  0x0a7: 745f000000   |     	jne    loop
+                      |
+  0x0ac: 2051         | 	rrmovl %ebp,%ecx         // mrmovl -0x4(%ebp),%eax
+  0x0ae: 30f204000000 | 	irmovl 0x4,%edx
+  0x0b4: 6121         | 	subl   %edx,%ecx
+  0x0b6: 500100000000 | 	mrmovl (%ecx),%eax
+                      |
+  0x0bc: 2054         |    	rrmovl %ebp,%esp
+  0x0be: b05f         | 	popl   %ebp
+  0x0c0: 90           |   	ret
+                      | /* $end sum-ys */
+                      |
+                      | # The stack starts here and grows to lower addresses
+  0x100:              | 	.pos 0x100
+  0x100:              | Stack:
