@@ -1,0 +1,6 @@
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.bbl
+*.log
+*.blg
+*.synctex.gz
