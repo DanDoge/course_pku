@@ -55,7 +55,7 @@
     \end{equation}
     contradiction! so for all $x^*$ which is the limit of one convergent sequence in $\mathcal{C}$, we have $x^* \in \mathcal{C}$
     \paragraph{}
-      2. suppose $\mathcal{C}$ is not closed, $i.e.$ $\mathcal{C}^c$ is not open, that is to say,
+      2. if $\mathcal{C}$ contains the limit point of every convergent sequence in it, suppose $\mathcal{C}$ is not closed, $i.e.$ $\mathcal{C}^c$ is not open, that is to say,
       \begin{equation}
         \exists x^* \in \mathcal{C}^c\ \forall\ \epsilon > 0\ (\cup(x^*, \epsilon)) \cap \mathcal{C} \not= \phi
       \end{equation}
@@ -64,11 +64,58 @@
       3. from 1 and 2, we have a set $\mathcal{C} \subseteq \mathcal{R}^n$ is closed iff it contains the limit point of every convergent sequence in it.
 
 \section{Q3}
+  \paragraph{}
   $x$ $\in$ $\partial\mathcal{C} = \bar{\mathcal{C}} \setminus \mathcal{C}^o = ((\mathcal{C}^c)^o)^c \setminus \mathcal{C}^o = ((\mathcal{C}^c)^o)^c \cap (\mathcal{C}^o)^c$
-  \paragraph{lemma 1}
+  \paragraph{}
     by definition, $x \in \mathcal{C}^o \iff \exists \epsilon > 0\ \cup(x, \epsilon) \subseteq \mathcal{C}$, thus we have
     \begin{equation}
-      x \in (\mathcal{C}^o)^c\ \iff\ \forany \epsilon > 0 \exists z \not\in \mathcal{C}
+      x \in (\mathcal{C}^o)^c\ \iff\ \forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x|_2 < \epsilon
     \end{equation}
+    and if we change $\mathcal{C}^o$ in equation (4) into $(\mathcal{C}^c)^o$, we have
+    \begin{equation}
+      x \in ((\mathcal{C}^c)^o)^c\ \iff\ \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x|_2 < \epsilon
+    \end{equation}
+  \paragraph{}
+    so $x$ $\in$ $\partial\mathcal{C} = ((\mathcal{C}^c)^o)^c \cap (\mathcal{C}^o)^c \iff \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x|_2 < \epsilon\ \exists z \not\in \mathcal{C}\ |z - x|_2 < \epsilon$
 
+\section{Q4}
+  \paragraph{1.1} if $\mathcal{C}$ is closed,  then for all $x^*$ in $\partial \mathcal{C}$, from $Q3$, we have $\forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x^*|_2 < \epsilon$, then $x^*$ must be a limit of one convergent sequence in $\mathcal{C}$, then from $Q2$, we have $x^* \in \mathcal{C}$, so $\mathcal{C} \supseteq \partial \mathcal{C}$.
+  \paragraph{1.2} if $\mathcal{C} \supseteq \partial \mathcal{C}$, suppose $\mathcal{C}$ is not closed, from $Q2$, there exists one point $x^*$ which is a limit of one convergent sequence in $\mathcal{C}$, but $x^* \not\in \mathcal{C}$, then we have
+  \begin{equation}
+    \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x^*|_2 < \epsilon\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon,
+  \end{equation}
+  we can just choose $z = x^*$, then from $Q3$, $x^* \in \partial \mathcal{C} \subseteq \mathcal{C}$, contradiction! so $\mathcal{C}$ nust be closed.
+  \paragraph{2.1} if $\mathcal{C}$ is open, suppose there exists $x^* \in \mathcal{C} \cap \partial \mathcal{C}$, then $\exists \epsilon > 0\ \cup(x^*, \epsilon) \subseteq \mathcal{C}$ and $\forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$, contradiction! so $\mathcal{C} \cap \partial \mathcal{C} = \phi$.
+  \paragraph{2.2} if $\mathcal{C} \cap \partial \mathcal{C} = \phi$, suppose $\mathcal{C}$ is not open, $i.e.$ $\exists x^* \in \mathcal{C}\  \forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$, then from $Q3$, $x^* \in \partial \mathcal{C}$
+  , contradiction! so $\mathcal{C}$ is open.
+\begin{CJK}{UTF8}{gbsn}
+\section{Q5, 6, 7的答案(图片)}
+\end{CJK}
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.1]{Q5.jpg}
+  \caption{Q5a}
+  \label{fig:label}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.1]{Q6.jpg}
+  \caption{Q6}
+  \label{fig:label}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.3]{Q7.jpg}
+  \caption{Q7}
+  \label{fig:label}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.3]{Q7_cont.jpg}
+  \caption{Q7cont}
+  \label{fig:label}
+\end{figure}
 \end{document}
