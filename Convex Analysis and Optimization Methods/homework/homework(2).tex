@@ -120,6 +120,31 @@
     所以 $x \in \mathcal{A}^{'} \subseteq \overline{\mathcal{A}}, x \in \mathcal{B}^{'} \subseteq \overline{\mathcal{B}}$, 即$x \in \overline{\mathcal{A}} \cap \overline{\mathcal{B}}$, 即 $\overline{\mathcal{A} \cap \mathcal{B}} \subseteq \overline{\mathcal{A}} \cap \overline{\mathcal{B}}$
     \paragraph{}
     例子: $\mathcal{R}$ 中, $\mathcal{A} = \{x |\ x < 0\},\ \mathcal{B} = \{x |\ x > 0\}$, 则 $\overline{\mathcal{A} \cap \mathcal{B}} = \phi$, 但 $\overline{\mathcal{A}} \cap \overline{\mathcal{B}} = \{0\}$.
+  \paragraph{b.1}
+    在$Q5.a.1$中已经证过
+    \begin{equation}
+      \begin{aligned}
+        & \forall x \in \mathcal{R}^n \\
+        & x \in (P \cap Q)^o \\
+        \iff & \exists \epsilon \ \cup (x, \epsilon) \subseteq P \cap Q \\
+        \iff & \exists \epsilon \ \cup (x, \epsilon) \subseteq P \ \land\  \exists \epsilon \quad \cup (x, \epsilon) \subseteq Q \\
+        \iff & x \in P^o \ \land\  x \in Q^o \\
+      \end{aligned}
+    \end{equation}
+    将$P,Q$替换成$\mathcal{A}, \mathcal{B}$ 即为本题所求
+  \paragraph{b.2}
+    类似的
+    \begin{equation}
+      \begin{aligned}
+        & \forall x \in \mathcal{R}^n \\
+        & x \in \mathcal{A}^o \cup \mathcal{B}^o \\
+        \iff & \exists \epsilon \ \cup (x, \epsilon) \subseteq \mathcal{A} \lor \cup (x, \epsilon) \subseteq \mathcal{B} \\
+        \Longrightarrow & \exists \epsilon \ \cup (x, \epsilon) \subseteq \mathcal{A} \cup \mathcal{B} \\
+        \iff & x \in (\mathcal{A} \cup \mathcal{B})^o \\
+      \end{aligned}
+    \end{equation}
+    \paragraph{}
+      取$\mathcal{A} = [0, 1),\ \mathcal{B} = [1, 2]$, 则有 $(\mathcal{A} \cup \mathcal{B})^o = (0, 2)$, 但是 $\mathcal{A}^o \cup \mathcal{B}^o = (0, 1) \cup (1, 2)$.
 \section{Q6}
   \paragraph{a}
     $\lim_{k \to \infty} x_k = 0$, 又 $\frac{|e_{k + 1}|}{|e_k|} = 0.5 < +\infty$, 所以$r = 1, c = 0.5$
