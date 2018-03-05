@@ -36,13 +36,13 @@
   \paragraph{$\mathcal{C}_3 = [0, 1) \cup [2, 3] \cup (4, 5]$}
     不是开集, 不是闭集, 有界, 不紧, 它的内点集是 $(0, 1) \cup (2, 3) \cup (4, 5)$, 它的闭包是 $[0, 1] \cup [2, 3] \cup [4, 5]$, 它的边界是 $\{0, 1, 2, 3, 4, 5\}$, 它的聚点集是 $[0, 1] \cup [2, 3] \cup [4, 5]$.
   \paragraph{$\mathcal{C}_4 = \{(x, y)^T |\  x \geq 0, y > 0\}$}
-    不开, 不闭, 无界, 不紧, 它的内点集是 $\{(x, y)|\ x > 0, y > 0\}$, 它的闭包是 $\{(x, y)|\ x \ge 0, y \ge 0\}$, 它的边界是 $\{(0, y)|y \ge 0 \} \cup \{(x, 0)|\ x \ge 0\}$, 它的聚点集是 $\{(x, y)|\ x \ge 0, y \ge 0\}$.
+    不开, 不闭, 无界, 不紧, 它的内点集是 $\{(x, y)^T|\ x > 0, y > 0\}$, 它的闭包是 $\{(x, y)^T|\ x \ge 0, y \ge 0\}$, 它的边界是 $\{(0, y)^T|y \ge 0 \} \cup \{(x, 0)^T|\ x \ge 0\}$, 它的聚点集是 $\{(x, y)^T|\ x \ge 0, y \ge 0\}$.
   \paragraph{$\mathcal{C}_5 = \{k|\ k \in \mathcal{Z}\}$}
-    不是开集, 是闭集, 无界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是它自身, $\{k|\ k \in \mathcal{Z}\}$, 它的聚点集是 $\phi$.
+    不是开集, 是闭集, 无界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是它自身, 也就是 $\{k|\ k \in \mathcal{Z}\}$, 它的聚点集是它自身(按讲义中定义, 孤立点算作聚点).
   \paragraph{$\mathcal{C}_6 = \{k^{-1}|\ k \in \mathcal{Z}\}$}
-    不开, 不闭, 无界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{k^{-1}|\ k \in \mathcal{Z}\} \cup \{0\}$, 它的聚点集是 $\{0\}$.
-  \paragraph{$\mathcal{C}_7 = \{(1 / k, \sin{k}^T|\ k \in \mathcal{Z})\}$}
-    不开, 不闭, 有界, 但不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{(1 / k, \sin{k}^T|\ k \in \mathcal{Z})\} \cup \{(0, y)|\ -1 \leq y \leq 1\}$, 它的聚点集是 $\{(0, y)|\ -1 \leq y \leq 1\}$.
+    不开, 不闭, 有界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{k^{-1}|\ k \in \mathcal{Z}\} \cup \{0\}$, 它的聚点集是 $\mathcal{C}_6 \cup \{0\}$.
+  \paragraph{$\mathcal{C}_7 = \{(1 / k, \sin{k})^T|\ k \in \mathcal{Z}\}$}
+    不开, 不闭, 有界, 但不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{(1 / k, \sin{k})^T|\ k \in \mathcal{Z}\} \cup \{(0, y)|\ -1 \leq y \leq 1\}$, 它的聚点集是 $\mathcal{C}_7 \cup \{(0, y)|\ -1 \leq y \leq 1\}$.
 
 \section{Q2}
   \paragraph{}
@@ -58,9 +58,9 @@
     \paragraph{}
       2. 如果 $\mathcal{C}$ 包含其中所有收敛序列的极限点, 但 $\mathcal{C}$ 并不是闭集, $i.e.$ $\mathcal{C}^c$ 不是开集, 也就是,
       \begin{equation}
-        \exists x^* \in \mathcal{C}^c\ \forall\ \epsilon > 0\ (\cup(x^*, \epsilon)) \cap \mathcal{C} \not= \phi
+        \exists x^* \in \mathcal{C}^c\ ,s.t.\ \forall\ \epsilon > 0\ (\cup(x^*, \epsilon)) \cap \mathcal{C} \not= \phi
       \end{equation}
-      因为 $(\mathcal{C}^c)^c = \mathcal{C}$. 选定一列 $\epsilon_k \to 0$ 并选取 $x_k \in (\cup(x^*, \epsilon)) \cap \mathcal{C}$, 有 $\lim_{k \to \infty} x_k = x^*$, 得到 $x^* \in \mathcal{C}$, 矛盾! 所以 $\mathcal{C}$ 是闭集.
+      因为 $(\mathcal{C}^c)^c = \mathcal{C}$. 选定一列 $\epsilon_k \to 0$ 并选取 $x_k \in (\cup(x^*, \epsilon_k)) \cap \mathcal{C}$, 有 $\lim_{k \to \infty} x_k = x^*$, 由假设得到 $x^* \in \mathcal{C}$, 矛盾! 所以 $\mathcal{C}$ 是闭集.
     \paragraph{}
       3. 由1和2, 我们证明了 $\mathcal{C} \subseteq \mathcal{R}^n$ 是闭集 $\iff$ $\mathcal{C}$ 包含其中所有收敛序列的极限点.
 
@@ -77,7 +77,7 @@
       x \in ((\mathcal{C}^c)^o)^c\ \iff\ \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x|_2 < \epsilon
     \end{equation}
   \paragraph{}
-    所以 $x$ $\in$ $\partial\mathcal{C} = ((\mathcal{C}^c)^o)^c \cap (\mathcal{C}^o)^c \iff \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x|_2 < \epsilon\ \exists z \not\in \mathcal{C}\ |z - x|_2 < \epsilon$
+    合并两个等式, 所以 $x$ $\in$ $\partial\mathcal{C} = ((\mathcal{C}^c)^o)^c \cap (\mathcal{C}^o)^c \iff \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x|_2 < \epsilon\ \exists z \not\in \mathcal{C}\ |z - x|_2 < \epsilon$
 
 \section{Q4}
   \paragraph{1.1} 如果 $\mathcal{C}$ 是闭集,  那么 $\forall x^* \in \partial \mathcal{C}$, 由 $Q3$, 得到 $\forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x^*|_2 < \epsilon$, 那么 $x^*$ 一定是 $\mathcal{C}$ 中一个收敛序列的极限点, 又由 $Q2$, 得到 $x^* \in \mathcal{C}$, 所以 $\mathcal{C} \supseteq \partial \mathcal{C}$.
@@ -85,9 +85,9 @@
   \begin{equation}
     \forall \epsilon > 0\ \exists y \in \mathcal{C}\ |y - x^*|_2 < \epsilon\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon,
   \end{equation}
-  只需选择 $z = x^*$, 那由 $Q3$, $x^* \in \partial \mathcal{C} \subseteq \mathcal{C}$, 矛盾! 所以 $\mathcal{C}$ 是一个闭集.
-  \paragraph{2.1} 如果 $\mathcal{C}$ 是开集, 假设存在 $x^* \in \mathcal{C} \cap \partial \mathcal{C}$, 那么 $\exists \epsilon > 0\ \cup(x^*, \epsilon) \subseteq \mathcal{C}$ 并且 $\forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$, 矛盾! 所以 $\mathcal{C} \cap \partial \mathcal{C} = \phi$.
-  \paragraph{2.2} 如果 $\mathcal{C} \cap \partial \mathcal{C} = \phi$, 假设 $\mathcal{C}$ 不是开集, $i.e.$ $\exists x^* \in \mathcal{C}\  \forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$, 那么由 $Q3$, $x^* \in \partial \mathcal{C}$
+  只需再等式(6)中选择 $z = x^*$, 那由 $Q3$, $x^* \in \partial \mathcal{C} \subseteq \mathcal{C}$, 矛盾! 所以 $\mathcal{C}$ 是一个闭集.
+  \paragraph{2.1} 如果 $\mathcal{C}$ 是开集, 假设存在 $x^* \in \mathcal{C} \cap \partial \mathcal{C}$, 那么 $\exists \epsilon > 0\ \cup(x^*, \epsilon) \subseteq \mathcal{C}$(这是因为$\mathcal{C}$是一个开集) 并且 $\forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$ (因为$x^*$在边界上), 矛盾! 所以 $\mathcal{C} \cap \partial \mathcal{C} = \phi$.
+  \paragraph{2.2} 如果 $\mathcal{C} \cap \partial \mathcal{C} = \phi$, 假设 $\mathcal{C}$ 不是开集, $i.e.$ $\exists x^* \in \mathcal{C}\  \forall \epsilon > 0\ \exists z \not\in \mathcal{C}\ |z - x^*|_2 < \epsilon$, 那么类似的, 在等式(6)中取$y = x^*$, 由 $Q3$, $x^* \in \partial \mathcal{C}$
   , 矛盾! 所以 $\mathcal{C}$ 是开集.
 
 \section{Q5}
@@ -95,9 +95,9 @@
     \begin{equation}
       \begin{aligned}
         \overline{\mathcal{A} \cup \mathcal{B}} & = (((\mathcal{A} \cup \mathcal{B})^c)^o)^c \\
-        & = ((\mathcal{A}^c \cap \mathcal{B}^c)^o)^c \quad (De Morgan) \\
+        & = ((\mathcal{A}^c \cap \mathcal{B}^c)^o)^c \quad (De\ Morgan) \\
         & = ((\mathcal{A}^c)^o \cap (\mathcal{B}^c)^o)^c \quad (*) \\
-        & = ((\mathcal{A}^c)^o)^c \cup ((\mathcal{B}^c)^o)^c \quad (De Morgan) \\
+        & = ((\mathcal{A}^c)^o)^c \cup ((\mathcal{B}^c)^o)^c \quad (De\ Morgan) \\
         & = \overline{\mathcal{A}} \cup \overline{\mathcal{B}}
       \end{aligned}
     \end{equation}
@@ -113,7 +113,7 @@
     \end{equation}
     所以 $(P \cap Q)^o = P^o \cap Q^o$.
   \paragraph{a.2}
-    $\forall x \in \overline{\mathcal{A} \cap \mathcal{B}}$, 存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{A} \cap \mathcal{B}$, 并且 $\lim_{k \to \infty} x_k = x$ (只需证明$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 其中, $\mathcal{C}^{'}$是导集(聚点集), 由$Q2$, $\mathcal{C} \cup \mathcal{C}^{'} \subseteq \mathcal{C}$, 即一个集合的闭包必然包含其导集, 又$\mathcal{C} \cup \mathcal{C}^{'}$是闭集($\forall x \in (\mathcal{C} \cup \mathcal{C}^{'})^c$, 若$\forall \epsilon > 0$ 都有 $(\cup(x, \epsilon)) \cap (\mathcal{C} \cup \mathcal{C}^{'}) \not= \phi$ 则可以构造一列$x_k \in \mathcal{C}$, $\lim_{k \to \infty} = x$, 即 $x \in \mathcal{C}^{'}$, 矛盾!) 所以$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 因为闭包是最小闭集, 证毕)
+    $\forall x \in \overline{\mathcal{A} \cap \mathcal{B}}$, 存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{A} \cap \mathcal{B}$, 并且 $\lim_{k \to \infty} x_k = x$ (为得到这个式子, 只需证明$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 其中, $\mathcal{C}^{'}$是导集(聚点集), 由$Q2$, $\mathcal{C} \cup \mathcal{C}^{'} \subseteq \mathcal{C}$, 即一个集合的闭包必然包含其导集(收敛点的集合), 又$\mathcal{C} \cup \mathcal{C}^{'}$是闭集(下证它是闭集$\forall x \in (\mathcal{C} \cup \mathcal{C}^{'})^c$, 若$\forall \epsilon > 0$ 都有 $(\cup(x, \epsilon)) \cap (\mathcal{C} \cup \mathcal{C}^{'}) \not= \phi$ 则可以构造一列$x_k \in \mathcal{C}$(构造方法: 如果$x_k \in \mathcal{C}$, 直接选取它, 如果在导集中, 可以选取离他足够近的$\mathcal{C}$中的点), $\lim_{k \to \infty} x_k = x$, 即 $x \in \mathcal{C}^{'}$, 矛盾!) 所以$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 这是因为闭包是最小闭集, 证毕)
     \paragraph{}
     所以 $\exists \{x_k\} \subseteq \mathcal{A},\ \lim_{k \to \infty} x_k = x$, $\exists \{y_k\} \subseteq \mathcal{B},\ \lim_{k \to \infty} y_k = x$,
     \paragraph{}
@@ -160,7 +160,7 @@
 \section{Q7}
   可以确定
   \paragraph{}
-  不妨设 $\lim_{k \to \infty} = x^*$, 类似的, 约定 $y^*, r_y, c_y, r_x, r_c, c_x, c_c$
+  不妨设 $\lim_{k \to \infty} x_k = x^*$, 类似的, 约定 $y^*, r_y, c_y, r_x, r_c, c_x, c_c$
   \begin{equation}
     \begin{aligned}
       \frac{|y_{k + 1} - y^*|}{|y_k - y^*|^{r_y}} & = \frac{|c_{k + 1}x_{k + 1} - c_{k + 1}x^* + c_{k + 1}x^* - cx^*|}{|c_{k}x_{k} - c_{k}x^* + c_{k}x^* - cx^*|^{r_y}} \\
