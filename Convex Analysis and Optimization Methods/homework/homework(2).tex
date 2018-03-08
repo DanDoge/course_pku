@@ -32,7 +32,7 @@
   \paragraph{$\mathcal{C}_1 = \phi$}
     是开集, 闭集, 有界集, 紧集, 它的内点集, 闭包, 边界和聚点集都是$\phi$.
   \paragraph{$\mathcal{C}_2 = \mathcal{R}^n$}
-    是开集, 闭集, 无界集, 不是紧集, 它的内点集, 闭包, 边界和聚点集都是$\mathcal{R}^n$ .
+    是开集, 闭集, 无界集, 不是紧集, 它的内点集, 闭包, 和聚点集都是$\mathcal{R}^n$, 它的边界点集是空集.
   \paragraph{$\mathcal{C}_3 = [0, 1) \cup [2, 3] \cup (4, 5]$}
     不是开集, 不是闭集, 有界, 不紧, 它的内点集是 $(0, 1) \cup (2, 3) \cup (4, 5)$, 它的闭包是 $[0, 1] \cup [2, 3] \cup [4, 5]$, 它的边界是 $\{0, 1, 2, 3, 4, 5\}$, 它的聚点集是 $[0, 1] \cup [2, 3] \cup [4, 5]$.
   \paragraph{$\mathcal{C}_4 = \{(x, y)^T |\  x \geq 0, y > 0\}$}
@@ -40,9 +40,9 @@
   \paragraph{$\mathcal{C}_5 = \{k|\ k \in \mathcal{Z}\}$}
     不是开集, 是闭集, 无界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是它自身, 也就是 $\{k|\ k \in \mathcal{Z}\}$, 它的聚点集是它自身(按讲义中定义, 孤立点算作聚点).
   \paragraph{$\mathcal{C}_6 = \{k^{-1}|\ k \in \mathcal{Z}\}$}
-    不开, 不闭, 有界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{k^{-1}|\ k \in \mathcal{Z}\} \cup \{0\}$, 它的聚点集是 $\mathcal{C}_6 \cup \{0\}$.
+    不开, 不闭, 有界, 不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{k^{-1}|\ k \in \mathcal{Z}\} \cup \{0\}$, 它的聚点集也是 $\mathcal{C}_6 \cup \{0\}$.
   \paragraph{$\mathcal{C}_7 = \{(1 / k, \sin{k})^T|\ k \in \mathcal{Z}\}$}
-    不开, 不闭, 有界, 但不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{(1 / k, \sin{k})^T|\ k \in \mathcal{Z}\} \cup \{(0, y)|\ -1 \leq y \leq 1\}$, 它的聚点集是 $\mathcal{C}_7 \cup \{(0, y)|\ -1 \leq y \leq 1\}$.
+    不开, 不闭, 有界, 但不紧, 它的内点集是 $\phi$, 它的闭包和边界集都是 $\{(1 / k, \sin{k})^T|\ k \in \mathcal{Z}\} \cup \{(0, y)|\ -1 \leq y \leq 1\}$, 它的聚点集也是 $\mathcal{C}_7 \cup \{(0, y)|\ -1 \leq y \leq 1\}$.
 
 \section{Q2}
   \paragraph{}
@@ -50,7 +50,7 @@
     \begin{equation}
       \exists \epsilon\ s.t.\ (\cup(x^*, \epsilon)) \cap \mathcal{C} = \phi
     \end{equation}
-    因为 $\cup(x^*, \epsilon) \subseteq \mathcal{C}^c$. 但存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{C}$ 也即 $\lim_{k \to \infty} x_k = x^*$, 也就是说,
+    因为 $\cup(x^*, \epsilon) \subseteq \mathcal{C}^c$. 但存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{C}$ 并且 $\lim_{k \to \infty} x_k = x^*$, 也就是说,
     \begin{equation}
       \forall \epsilon\ \ (\cup(x^*, \epsilon)) \cap \mathcal{C} \not= \phi
     \end{equation}
@@ -113,9 +113,9 @@
     \end{equation}
     所以 $(P \cap Q)^o = P^o \cap Q^o$.
   \paragraph{a.2}
-    $\forall x \in \overline{\mathcal{A} \cap \mathcal{B}}$, 存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{A} \cap \mathcal{B}$, 并且 $\lim_{k \to \infty} x_k = x$ (为得到这个式子, 只需证明$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 其中, $\mathcal{C}^{'}$是导集(聚点集), 由$Q2$, $\mathcal{C} \cup \mathcal{C}^{'} \subseteq \mathcal{C}$, 即一个集合的闭包必然包含其导集(收敛点的集合), 又$\mathcal{C} \cup \mathcal{C}^{'}$是闭集(下证它是闭集$\forall x \in (\mathcal{C} \cup \mathcal{C}^{'})^c$, 若$\forall \epsilon > 0$ 都有 $(\cup(x, \epsilon)) \cap (\mathcal{C} \cup \mathcal{C}^{'}) \not= \phi$ 则可以构造一列$x_k \in \mathcal{C}$(构造方法: 如果$x_k \in \mathcal{C}$, 直接选取它, 如果在导集中, 可以选取离他足够近的$\mathcal{C}$中的点), $\lim_{k \to \infty} x_k = x$, 即 $x \in \mathcal{C}^{'}$, 矛盾!) 所以$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 这是因为闭包是最小闭集, 证毕)
+    $\forall x \in \overline{\mathcal{A} \cap \mathcal{B}}$, 存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{A} \cap \mathcal{B}$, 并且 $\lim_{k \to \infty} x_k = x$ (为得到这个式子, 只需证明$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 其中, $\mathcal{C}^{'}$是导集(聚点集), 由$Q2$, $\mathcal{C} \cup \mathcal{C}^{'} \subseteq \mathcal{C}$, 即一个集合的闭包必然包含其导集(收敛点的集合), 又$\mathcal{C} \cup \mathcal{C}^{'}$是闭集(下证它是闭集, 也就是$(\mathcal{C} \cup \mathcal{C}^{'})^c$是开集: (反证)$\forall x \in (\mathcal{C} \cup \mathcal{C}^{'})^c$, 若$\forall \epsilon > 0$ 都有 $(\cup(x, \epsilon)) \cap (\mathcal{C} \cup \mathcal{C}^{'}) \not= \phi$ 则可以构造一列$x_k \in \mathcal{C}$(构造方法: 如果$x_k \in \mathcal{C}$, 直接选取它, 如果在导集中, 可以选取离他足够近的$\mathcal{C}$中的点), $\lim_{k \to \infty} x_k = x$, 即 $x \in \mathcal{C}^{'}$, 矛盾!) 所以$\overline{\mathcal{C}} = \mathcal{C} \cup \mathcal{C}^{'}$, 这是因为闭包是最小闭集, 证毕)
     \paragraph{}
-    所以 $\exists \{x_k\} \subseteq \mathcal{A},\ \lim_{k \to \infty} x_k = x$, $\exists \{y_k\} \subseteq \mathcal{B},\ \lim_{k \to \infty} y_k = x$,
+    我们证明了, 存在 $\{x_k\}_1^{\infty} \subseteq \mathcal{A} \cap \mathcal{B}$, 并且 $\lim_{k \to \infty} x_k = x$, 所以 $\exists \{x_k\} \subseteq \mathcal{A},\ \lim_{k \to \infty} x_k = x$, $\exists \{y_k\} \subseteq \mathcal{B},\ \lim_{k \to \infty} y_k = x$,
     \paragraph{}
     所以 $x \in \mathcal{A}^{'} \subseteq \overline{\mathcal{A}}, x \in \mathcal{B}^{'} \subseteq \overline{\mathcal{B}}$, 即$x \in \overline{\mathcal{A}} \cap \overline{\mathcal{B}}$, 即 $\overline{\mathcal{A} \cap \mathcal{B}} \subseteq \overline{\mathcal{A}} \cap \overline{\mathcal{B}}$
     \paragraph{}
@@ -173,7 +173,7 @@
   \paragraph{}
     $x^* \not= 0$时, 分析各项的阶, $r$越大则对应变量的阶越小, 则成为可以忽略的无穷小量, 所以
     \begin{equation}
-      r_y = min\{r_x, r_c\},\quad c_y =
+      r_y = \min\{r_x, r_c\},\quad c_y =
       \begin{cases}
         c_x,\ r_x < r_c \\
         c_c,\ r_c < r_x \\
@@ -182,7 +182,7 @@
   \paragraph{}
   而当$r_c = r_x$时, $c$越大, 它的阶越大($e_{k + 1} \approx c|e_{k}|^r$)
   \begin{equation}
-    c_y = max\{c_x, c_c\}\ (when\ r_x = r_c)
+    c_y = \max\{c_x, c_c\}\ (when\ r_x = r_c)
   \end{equation}
   \paragraph{}
   综上所述
@@ -192,12 +192,12 @@
   \end{equation}
   $x^* \not= 0$时
   \begin{equation}
-    r_y = min\{r_x, r_c\}, \quad
+    r_y = \min\{r_x, r_c\}, \quad
     c_y =
     \begin{cases}
       c_x \quad (r_x < r_c) \\
       c_c \quad (r_c < r_x) \\
-      max\{c_x, c_c\} \quad (r_x = r_c) \\
+      \max\{c_x, c_c\} \quad (r_x = r_c) \\
     \end{cases}
   \end{equation}
 \end{CJK}
