@@ -141,6 +141,7 @@
     \begin{frame}
       \frametitle{DFT and FFT}
       \begin{itemize}
+        \item $A(x) = A^{[0]}(x^2) + xA^{[1]}(x^2)$
         \item 这样对n次多项式的求值转化为对两个n / 2次多项式的求值
         \item 并且 $(\omega^0_n)^2, ..., (\omega^{n - 1}_n)^2$正好是1的n / 2次方根, 正好得到规模减小的原问题
         \item 合并子问题解的过程可以在$O(n)$时间内完成, 也可以利用单位根的性质做优化.
@@ -187,7 +188,7 @@
     \begin{frame}
       \frametitle{convex hull-intro. and algo.}
       \begin{itemize}
-        \item 问题 给定点集, 求最小的凸多边形包含所有点
+        \item 问题$\ \ $给定离散点集, 求最小的凸多边形包含所有点
         \pause \item 算法
           \begin{itemize}
             \item 以$y_{max}, y_{min}$的连线分成两个点集
