@@ -15,15 +15,19 @@
 #define M_PI_2_INV    (1.0/M_PI_2)
 #define M_2_SQRTPI    1.12837916709551257390    /* 2/sqrt(pi) */
 #define ERF_COEF      (1.0/M_2_SQRTPI)
-#define threhold      100000000
+#define threhold      1000000
+#define SIZE          100000
+
+const char* FILE_NAME = "homework2-input";
 
 
-void verification(){
-    double ans = 0.0;
-    for(double i = 1.0; i <= 100000000.0; i += 1.0){
-        ans += 1 / (1 + exp(-i));
-    }
-    printf("result on cpu: %10.10f. \n", ans);
+void verification(double* input, int size) {
+	double ans = 0.0;
+	for (int i = 0; i < size; i += 1) {
+		ans += 1 / (1 + exp(-input[i]));
+	}
+	printf("result on cpu: %10.10f. \n", ans);
+	return;
 }
 
 // print some basic parameters
@@ -78,50 +82,53 @@ bool InitCUDA()
 
 
 // kernel function here
-__global__ static void calc(double* gpuans) {
+__global__ static void calc(double* gpuans, double* gpuinput) {
 	__shared__ double tmp[100];
-	int bid = blockIdx.x * 100 + blockIdx.y;
+	int bid = blockIdx.x * 10 + blockIdx.y;
 	int tid = threadIdx.x * 10 + threadIdx.y;
 
-	double idx = bid * 10000 + tid * 100;
-	double ans = 0.0;
-	if (idx < threhold) {
-		for (double i = 1.0; i <= 100.0; i += 1.0) {
-			ans += 1 / (1 + exp(-idx - i));
+	int tidx = bid * 1000 + tid * 10;
+	tmp[tid] = 0;
+	for (int i = 0; i < 10; i += 1) {
+		double idx = gpuinput[tidx + i]; // base line inplementation <-- cache it!
+		if (idx < threhold) {
+			tmp[tid] = tmp[tid] + 1 / (1 + exp(-idx));
+		}
+		else {
+            // could it be faster?
+			tmp[tid] = tmp[tid] + M_PI_2_INV * atan(M_PI_2 * (idx));
+		}
+	}
+	__syncthreads();
+
+    // rubbish code
+	if (tid > 63) {
+		tmp[tid - 36] = tmp[tid] + tmp[tid - 36];
+	}
+	__syncthreads();
+	int i = 32;
+	while (i != 0) {
+		if (tid < i) {
+			tmp[tid] = tmp[tid + i] + tmp[tid];
+		}
+		__syncthreads();
+		i /= 2;
+	}
+	if (tid == 0) {
+		gpuans[bid] = tmp[0];
+	}
+}
+
+void read_input(double* input, int size) {
+    //what if choosing mmap()?
+	FILE* fp = fopen(FILE_NAME, "r");
+	if (fp) {
+		for (int i = 0; i < size; i += 1) {
+			fscanf(fp, "%lf\n", &input[i]);
 		}
 	}
 	else {
-		for (double i = 1.0; i <= 100.0; i += 1.0) {
-			ans += M_PI_2_INV * atan(M_PI_2 * (i + idx));
-		}
-	}
-	tmp[tid] = ans;
-    __syncthreads();
-    /*
-	int offset = 1, mask = 1;
-	while (offset < 100) {
-		if ((tid & mask) == 0 && tid + mask < 100) {
-			tmp[tid] += tmp[tid + offset];
-		}
-		offset = offset << 1;
-		mask = mask + offset;
-		__syncthreads();
-	}*/
-    int i = 50;
-    while(i != 0){
-        if(tid < i){
-            tmp[tid] = tmp[tid + i] + tmp[tid];
-        }
-        __syncthreads();
-        i /= 2;
-    }
-	if (tid == 0) {
-        /*
-        double res = 0.0;
-        for(int i = 0; i < 100; i += 1){
-            res += tmp[i];
-        }*/
-		gpuans[bid] = tmp[0];
+		printf("error: reading input, in read_input()\n");
 	}
 }
 
@@ -135,29 +142,44 @@ int main() {
 	double* gpuwarmup;
 	cudaMalloc((void**)&gpuwarmup, sizeof(double) * 1024 * 1024);
 	cudaMemcpy(gpuwarmup, warmup, sizeof(double) * 1024 * 1024, cudaMemcpyHostToDevice);
+	free(warmup);
+	cudaFree(gpuwarmup);
 
 	//
 	dim3 dimBlock(10, 10);
-	dim3 dimGrid(100, 100);
+	dim3 dimGrid(10, 10);
 
 	clock_t start, stop;
 	start = clock();
-	double* ans = (double*)calloc(10000, sizeof(double));
+
+	double* input = (double*)malloc(sizeof(double) * SIZE);
+	double* gpuinput;
+	cudaMalloc((void**)&gpuinput, sizeof(double) * SIZE);
+	read_input(input, SIZE);
+	cudaMemcpy(gpuinput, input, sizeof(double) * SIZE, cudaMemcpyHostToDevice);
+
+	double* ans = (double*)calloc(100, sizeof(double));
 	double* gpuans;
-	cudaMalloc((void**)&gpuans, sizeof(double) * 10000);
-	cudaMemcpy(gpuans, ans, sizeof(double) * 10000, cudaMemcpyHostToDevice);
-	calc<<<dimGrid, dimBlock >>>(gpuans);
-	cudaMemcpy(ans, gpuans, sizeof(double) * 10000, cudaMemcpyDeviceToHost);
+	cudaMalloc((void**)&gpuans, sizeof(double) * 100);
+	cudaMemcpy(gpuans, ans, sizeof(double) * 100, cudaMemcpyHostToDevice);
+	calc << <dimGrid, dimBlock >> >(gpuans, gpuinput);
+	cudaMemcpy(ans, gpuans, sizeof(double) * 100, cudaMemcpyDeviceToHost);
 
 	double res = 0.0;
-	for (int i = 0; i < 10000; i += 1) {
+	for (int i = 0; i < 100; i += 1) {
 		res += ans[i];
 	}
+
+	cudaFree(gpuans);
+    free(ans);
+	cudaFree(gpuinput);
 	stop = clock();
 	double t_ns = (stop - start) / (double)(CLOCKS_PER_SEC);
 	printf("%10.10f s\n", t_ns);
 	printf("result is: %10.10f. \n", res);
-    verification();
+	verification(input, SIZE);
+	free(input);
+	scanf("%ld", res);
 	return 0;
 }
 
