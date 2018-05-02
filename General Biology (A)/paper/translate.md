@@ -109,6 +109,20 @@ CI可以分为4个功能模块. 基质臂远端形成N模块, 它包括核心亚
 
 硝基蓝四唑(NBT)具有两个四唑, 是可溶黄色化合物. 当NBT被还原时, 形成蓝色或紫色沉淀甲瓒. NBT染色可用于NADH脱氢酶的特异性凝胶内活性测定. 为了NBT染色, BN-PAGE凝胶在含有100mM Tris-甘氨酸 pH7.4, 1mg/ml NBT, 和100 μM β-NADH的缓冲液中温育5-10min.
 
+#### 负染色电镜
+
+4μl呼吸超复合物(0.5 mgml$^{-1}$)加以辉光放电的碳涂层铜网格(300 mesh, Zhongjingkeyi, Beijing).. 在室温下温育1min, 用滤纸吸收过量液体. 包含样品的网格用2%的铀酰乙酸染色1min, 风干. 在Tecnai Spirit显微镜(FEI company)上采集显微照片, 使用电压为120kv, 4k*4k电荷耦合器件相机(CCD)(UltraScan 4000, Gatan). 用毛地黄皂苷纯化的呼吸体超复合物的照片用$\times$68000放大, 像素大小1.5$\AA$
+
+#### 低温电子显微镜
+
+用0.2mg ml$^{-1}$增溶的呼吸体的4μl等分式样加以辉光放电的涂有国产(home-made)连续烯碳的400目Quantifoil R1.2/1.3 栅格 (Quantifoil, Micro Tools, Germany).栅格溪水1.5s, 之后插入液体乙烷中, 使用 FEI Mark IV Vitrobot, 在4℃, 100%湿度下操作. 在FEI Titan Krios microscope上使用 Falcon II direct electron detector (FEI), 电压300kv收集高分辨率图像. 自动单粒子数据采集用EPU封装(FEI)完成, 校准放大倍数$\times$132959, 最终像素尺寸10.5$\AA$, 散焦范围-1.8μm到-2.5μm. 检测器上的剂量率为每像素每秒约42个电子, 总曝光时间1.2s. 每个显微图栈包含19帧.
+
+#### 图像处理
+
+负染色电镜的数据集用EMAN2.1和RELION1.4处理. 用RELION进行无参考2D分类. 对于负染色电镜数据处理, 采用EMAN进行粒子采集, 用RELION进行粒子分类, 重建和结构细化. 最终3d分类中使用的数量是9936. 用一个密度球作为3D分类的初始参考. 最终的3个类之中, 用一个有4597个粒子的类细化, 生成3d模型.
+
+对于Falcon II数据集处理, 用MotionCorr程序(X.Li编写)进行显微镜水平的运动矫正, 在所有帧上生成平均显微照片. 用EMAN, RELLON进行显微照片筛选, 颗粒采集和正规化(normalization). 使用CTFFIND3程序来估计对比度转移函数参数. 用RELLON进行2D, 3D分类, 细化. 1371张显微照片中的139996个颗粒进行级联的2D和3D分类. 在细化测试中, 测试了不同类别的粒子组合. 对一组相对均匀的颗粒(50, 370)进行最终细化, 使用负染色模型低滤通波60$\AA$作为初始参考. 细化得到的密度图整体分辨率有7.2$\AA$, 整个复合物的软掩码(soft mask)区域分辨率有6.2$\AA$. 粒子从原始显微照片的第二帧到第十帧进行重建(也重新执行显微图像层面的运动矫正). 使用RELLON进行第二轮细化, 让复合物的软掩码区域的分辨率提高到6.1$\AA$. 第三轮细化通过扩大呼吸体的软掩码区域完成, 将分辨率提高到5.4$\AA$. 进一步改进密度图是通过一组基于子区域细化程序的软掩码实现的, 正如之前描述的对核糖体复合物的结构测定中描述的一样.
+
 ## 参考文献
 
 Jinke Gu, Meng Wu, Runyu Guo, Kaige Yan, Jianlin Lei, Ning Gao & Maojun Yang. (2016) The architecture of the mammalian respirasome. Nature. 537: 639-643.
