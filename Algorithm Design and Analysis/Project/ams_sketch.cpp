@@ -1,158 +1,526 @@
 /* Author:  Huang Daoji
- * Date  :  2018-04
- */
+* Date  :  2018-04
+*/
 
 
 /* Filename: ams_sketch.cpp
- * implementation of ams_sketch
- * not tested.
- */
+* implementation of ams_sketch
+* not tested.
+*/
 
 /* header files */
-#include <iostream.h>
+#include "stdafx.h"
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <vector>
+#include <algorithm>
+#include <functional>
+using namespace std;
+
+
+#ifdef __GNUC__
+#define FORCE_INLINE __attribute__((always_inline)) inline
+#else
+#define FORCE_INLINE inline
+#endif
+
+static FORCE_INLINE uint32_t rotl32(uint32_t x, int8_t r)
+{
+	return (x << r) | (x >> (32 - r));
+}
+
+static FORCE_INLINE uint64_t rotl64(uint64_t x, int8_t r)
+{
+	return (x << r) | (x >> (64 - r));
+}
+
+#define	ROTL32(x,y)	rotl32(x,y)
+#define ROTL64(x,y)	rotl64(x,y)
+
+#define BIG_CONSTANT(x) (x##LLU)
+
+//-----------------------------------------------------------------------------
+// Block read - if your platform needs to do endian-swapping or can only
+// handle aligned reads, do the conversion here
+
+#define getblock(p, i) (p[i])
+
+//-----------------------------------------------------------------------------
+// Finalization mix - force all bits of a hash block to avalanche
+
+static FORCE_INLINE uint32_t fmix32(uint32_t h)
+{
+	h ^= h >> 16;
+	h *= 0x85ebca6b;
+	h ^= h >> 13;
+	h *= 0xc2b2ae35;
+	h ^= h >> 16;
+
+	return h;
+}
+
+//----------
+
+static FORCE_INLINE uint64_t fmix64(uint64_t k)
+{
+	k ^= k >> 33;
+	k *= BIG_CONSTANT(0xff51afd7ed558ccd);
+	k ^= k >> 33;
+	k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
+	k ^= k >> 33;
+
+	return k;
+}
+
+//-----------------------------------------------------------------------------
+
+void MurmurHash3_x86_32(const void * key, int len,
+	uint32_t seed, void * out)
+{
+	const uint8_t * data = (const uint8_t*)key;
+	const int nblocks = len / 4;
+	int i;
+
+	uint32_t h1 = seed;
+
+	uint32_t c1 = 0xcc9e2d51;
+	uint32_t c2 = 0x1b873593;
+
+	//----------
+	// body
+
+	const uint32_t * blocks = (const uint32_t *)(data + nblocks * 4);
+
+	for (i = -nblocks; i; i++)
+	{
+		uint32_t k1 = getblock(blocks, i);
+
+		k1 *= c1;
+		k1 = ROTL32(k1, 15);
+		k1 *= c2;
+
+		h1 ^= k1;
+		h1 = ROTL32(h1, 13);
+		h1 = h1 * 5 + 0xe6546b64;
+	}
+
+	//----------
+	// tail
+
+	const uint8_t * tail = (const uint8_t*)(data + nblocks * 4);
+
+	uint32_t k1 = 0;
+
+	switch (len & 3)
+	{
+	case 3: k1 ^= tail[2] << 16;
+	case 2: k1 ^= tail[1] << 8;
+	case 1: k1 ^= tail[0];
+		k1 *= c1; k1 = ROTL32(k1, 15); k1 *= c2; h1 ^= k1;
+	};
+
+	//----------
+	// finalization
+
+	h1 ^= len;
+
+	h1 = fmix32(h1);
+
+	*(uint32_t*)out = h1;
+}
+
+//-----------------------------------------------------------------------------
+
+void MurmurHash3_x86_128(const void * key, const int len,
+	uint32_t seed, void * out)
+{
+	const uint8_t * data = (const uint8_t*)key;
+	const int nblocks = len / 16;
+	int i;
+
+	uint32_t h1 = seed;
+	uint32_t h2 = seed;
+	uint32_t h3 = seed;
+	uint32_t h4 = seed;
+
+	uint32_t c1 = 0x239b961b;
+	uint32_t c2 = 0xab0e9789;
+	uint32_t c3 = 0x38b34ae5;
+	uint32_t c4 = 0xa1e38b93;
+
+	//----------
+	// body
+
+	const uint32_t * blocks = (const uint32_t *)(data + nblocks * 16);
+
+	for (i = -nblocks; i; i++)
+	{
+		uint32_t k1 = getblock(blocks, i * 4 + 0);
+		uint32_t k2 = getblock(blocks, i * 4 + 1);
+		uint32_t k3 = getblock(blocks, i * 4 + 2);
+		uint32_t k4 = getblock(blocks, i * 4 + 3);
+
+		k1 *= c1; k1 = ROTL32(k1, 15); k1 *= c2; h1 ^= k1;
+
+		h1 = ROTL32(h1, 19); h1 += h2; h1 = h1 * 5 + 0x561ccd1b;
+
+		k2 *= c2; k2 = ROTL32(k2, 16); k2 *= c3; h2 ^= k2;
+
+		h2 = ROTL32(h2, 17); h2 += h3; h2 = h2 * 5 + 0x0bcaa747;
+
+		k3 *= c3; k3 = ROTL32(k3, 17); k3 *= c4; h3 ^= k3;
+
+		h3 = ROTL32(h3, 15); h3 += h4; h3 = h3 * 5 + 0x96cd1c35;
+
+		k4 *= c4; k4 = ROTL32(k4, 18); k4 *= c1; h4 ^= k4;
+
+		h4 = ROTL32(h4, 13); h4 += h1; h4 = h4 * 5 + 0x32ac3b17;
+	}
+
+	//----------
+	// tail
+
+	const uint8_t * tail = (const uint8_t*)(data + nblocks * 16);
+
+	uint32_t k1 = 0;
+	uint32_t k2 = 0;
+	uint32_t k3 = 0;
+	uint32_t k4 = 0;
+
+	switch (len & 15)
+	{
+	case 15: k4 ^= tail[14] << 16;
+	case 14: k4 ^= tail[13] << 8;
+	case 13: k4 ^= tail[12] << 0;
+		k4 *= c4; k4 = ROTL32(k4, 18); k4 *= c1; h4 ^= k4;
+
+	case 12: k3 ^= tail[11] << 24;
+	case 11: k3 ^= tail[10] << 16;
+	case 10: k3 ^= tail[9] << 8;
+	case  9: k3 ^= tail[8] << 0;
+		k3 *= c3; k3 = ROTL32(k3, 17); k3 *= c4; h3 ^= k3;
+
+	case  8: k2 ^= tail[7] << 24;
+	case  7: k2 ^= tail[6] << 16;
+	case  6: k2 ^= tail[5] << 8;
+	case  5: k2 ^= tail[4] << 0;
+		k2 *= c2; k2 = ROTL32(k2, 16); k2 *= c3; h2 ^= k2;
+
+	case  4: k1 ^= tail[3] << 24;
+	case  3: k1 ^= tail[2] << 16;
+	case  2: k1 ^= tail[1] << 8;
+	case  1: k1 ^= tail[0] << 0;
+		k1 *= c1; k1 = ROTL32(k1, 15); k1 *= c2; h1 ^= k1;
+	};
+
+	//----------
+	// finalization
+
+	h1 ^= len; h2 ^= len; h3 ^= len; h4 ^= len;
+
+	h1 += h2; h1 += h3; h1 += h4;
+	h2 += h1; h3 += h1; h4 += h1;
+
+	h1 = fmix32(h1);
+	h2 = fmix32(h2);
+	h3 = fmix32(h3);
+	h4 = fmix32(h4);
+
+	h1 += h2; h1 += h3; h1 += h4;
+	h2 += h1; h3 += h1; h4 += h1;
+
+	((uint32_t*)out)[0] = h1;
+	((uint32_t*)out)[1] = h2;
+	((uint32_t*)out)[2] = h3;
+	((uint32_t*)out)[3] = h4;
+}
+
+//-----------------------------------------------------------------------------
+
+void MurmurHash3_x64_128(const void * key, const int len,
+	const uint32_t seed, void * out)
+{
+	const uint8_t * data = (const uint8_t*)key;
+	const int nblocks = len / 16;
+	int i;
+
+	uint64_t h1 = seed;
+	uint64_t h2 = seed;
+
+	uint64_t c1 = BIG_CONSTANT(0x87c37b91114253d5);
+	uint64_t c2 = BIG_CONSTANT(0x4cf5ad432745937f);
+
+	//----------
+	// body
+
+	const uint64_t * blocks = (const uint64_t *)(data);
+
+	for (i = 0; i < nblocks; i++)
+	{
+		uint64_t k1 = getblock(blocks, i * 2 + 0);
+		uint64_t k2 = getblock(blocks, i * 2 + 1);
+
+		k1 *= c1; k1 = ROTL64(k1, 31); k1 *= c2; h1 ^= k1;
+
+		h1 = ROTL64(h1, 27); h1 += h2; h1 = h1 * 5 + 0x52dce729;
+
+		k2 *= c2; k2 = ROTL64(k2, 33); k2 *= c1; h2 ^= k2;
+
+		h2 = ROTL64(h2, 31); h2 += h1; h2 = h2 * 5 + 0x38495ab5;
+	}
+
+	//----------
+	// tail
+
+	const uint8_t * tail = (const uint8_t*)(data + nblocks * 16);
+
+	uint64_t k1 = 0;
+	uint64_t k2 = 0;
+
+	switch (len & 15)
+	{
+	case 15: k2 ^= (uint64_t)(tail[14]) << 48;
+	case 14: k2 ^= (uint64_t)(tail[13]) << 40;
+	case 13: k2 ^= (uint64_t)(tail[12]) << 32;
+	case 12: k2 ^= (uint64_t)(tail[11]) << 24;
+	case 11: k2 ^= (uint64_t)(tail[10]) << 16;
+	case 10: k2 ^= (uint64_t)(tail[9]) << 8;
+	case  9: k2 ^= (uint64_t)(tail[8]) << 0;
+		k2 *= c2; k2 = ROTL64(k2, 33); k2 *= c1; h2 ^= k2;
+
+	case  8: k1 ^= (uint64_t)(tail[7]) << 56;
+	case  7: k1 ^= (uint64_t)(tail[6]) << 48;
+	case  6: k1 ^= (uint64_t)(tail[5]) << 40;
+	case  5: k1 ^= (uint64_t)(tail[4]) << 32;
+	case  4: k1 ^= (uint64_t)(tail[3]) << 24;
+	case  3: k1 ^= (uint64_t)(tail[2]) << 16;
+	case  2: k1 ^= (uint64_t)(tail[1]) << 8;
+	case  1: k1 ^= (uint64_t)(tail[0]) << 0;
+		k1 *= c1; k1 = ROTL64(k1, 31); k1 *= c2; h1 ^= k1;
+	};
+
+	//----------
+	// finalization
+
+	h1 ^= len; h2 ^= len;
+
+	h1 += h2;
+	h2 += h1;
+
+	h1 = fmix64(h1);
+	h2 = fmix64(h2);
+
+	h1 += h2;
+	h2 += h1;
+
+	((uint64_t*)out)[0] = h1;
+	((uint64_t*)out)[1] = h2;
+}
+
+//-----------------------------------------------------------------------------
+
+
+
+#define SUCCESS   0
+#define OBJ       int
+#define depth     6
+#define buckets   64
+
+
+int get_hash_value(const OBJ& obj, int idx) {
+	uint64_t *res = (uint64_t*)malloc(sizeof(uint64_t) * 2);
+	MurmurHash3_x64_128(&obj, 1, idx, res);
+
+	int ans = (*res) & (buckets - 1);
+	free(res);
+	return ans;
+}
+
+int get_mult_factor(const OBJ& obj, int idx) {
+	return get_hash_value(obj, idx);
+}
+
+int hash_template(int s1, int s2) {
+	return get_hash_value(s1, s2);
+}
+
+int get_median(int* p, int length) {
+	vector<int> pv(p, p + length);
+	nth_element(pv.begin(), pv.begin() + pv.size() / 2, pv.end());
+	return pv[length / 2];
+}
+
 
 /* class declaration */
-class ams_sketch{
-    int depth;
-    int buckets;
-    int count;
-    int **sketch;
-    int **rand_array;
-    ams_sketch(){};
-    ams_sketch(int d, int b){};
-    int **create_rand_array(int lines, int rows){}; // a better rand function?
-    int insert(obj, freq = 1){};
-    int update_sketch(mult, idx, hash, freq){};
-    int is_compatible(int **other_sketch){};
-    int obj_count(const OBJ& obj){};
-    void get_estimate(int hash, int mult, int idx, int* estimates){};
-    int get_final_estimates(int* estimates){};
-    int get_estimateF2(){};
+class ams_sketch {
+public:
+	int count;
+	int **sketch;
+	int **rand_array;
+	ams_sketch();
+	~ams_sketch();
+	int **create_rand_array(int lines, int rows); // a better rand function?
+	int insert(const OBJ& obj, int freq);
+	int update_sketch(int mult, int idx, int hash, int freq);
+	int is_compatible(const ams_sketch& other_sketch);
+	int obj_count(const OBJ& obj);
+	void get_estimate(int hash, int mult, int idx, int* estimates);
+	int get_final_estimates(int* estimates);
+	int get_estimateF2();
+	int* mult_by_position(int** s1, int** s2);
+	int get_innerproduct(const ams_sketch& other_sketch);
+	int set_zero();
 };
 
 /* function implementation */
-ams_sketch::ams_sketch(){
-    depth = 0;
-    buckets = 0;
-    count = 0;
-    sketch = NULL;
-    rand_array = NULL;
+ams_sketch::ams_sketch() {
+	count = 0;
+	sketch = new int*[depth];
+	for (int i = 0; i < depth; i += 1) {
+		sketch[i] = new int[buckets];
+	}
+	set_zero();
+	rand_array = create_rand_array(depth, buckets);
 }
 
-ams_sketch::ams_sketch(int d, int b){
-    depth = d;
-    buckets = b;
-    count = 0;
-    sketch = new int[depth][buckets];
-    rand_array = create_rand_array(depth, buckets);
+
+ams_sketch::~ams_sketch() {
+	count = 0;
+	for (int i = 0; i < depth; i += 1) {
+		free(sketch[i]);
+	}
+	free(sketch);
+	for (int i = 0; i < depth; i += 1) {
+		free(rand_array[i]);
+	}
+	free(rand_array);
 }
 
-int **ams_sketch::create_rand_array(int lines, int rows){
-    int p = new int[lines][rows];
-    for(int i = 0; i < lines; i += 1){
-        for(int j = 0; j < lines; j += 1){
-            p[i][j] = rand() % INT_MAX;
-        }
-    }
-    return p;
+int **ams_sketch::create_rand_array(int lines, int rows) {
+	int** p = new int*[lines];
+	for (int i = 0; i < lines; i += 1) {
+		p[i] = new int[rows];
+		for (int j = 0; j < rows; j += 1) {
+			int tmp = hash_template(i, j);
+			if (tmp < 0) {
+				tmp = -tmp;
+			}
+			p[i][j] = tmp;
+		}
+	}
+	return p;
 }
 
-int ams_sketch::insert(const OBJ& obj, int freq = 1){
-    for(int i = 0; i < depth; i += 1){
-        int hash = get_hash_value(item, i);
-        int mult = get_mult_factor(item, i);
-        update_sketch(mult, i, hash, freq);
-    }
-    return SUCCESS;
+int ams_sketch::insert(const OBJ& obj, int freq = 1) {
+	for (int i = 0; i < depth; i += 1) {
+		int hash = get_hash_value(obj, i);
+		int mult = get_mult_factor(obj, i);
+		update_sketch(mult, i, hash, freq);
+	}
+	return SUCCESS;
 }
 
-int ams_sketch::update_sketch(int mult, int idx, int hash, int freq){
-    if(mult & 1){
-        sketch[i][hash] += freq;
-    }else{
-        sketch[i][hash] -= freq;
-    }
+int ams_sketch::update_sketch(int mult, int idx, int hash, int freq) {
+	if (mult & 1) {
+		sketch[idx][hash] += freq;
+	}
+	else {
+		sketch[idx][hash] -= freq;
+	}
+	return 0;
 }
 
-int ams_sketch::is_compatible(int **other_sketch){
-    if(buckets == other_sketch.buckets
-       && depth == other_sketch.depth){
-        for(int i = 0; i < depth; i += 1){
-            for(int j = 0; j < buckets; j += 1){
-                if(rand_array[i][j] != other_sketch.rand_array[i][j]){
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    return false;
+int ams_sketch::is_compatible(const ams_sketch& other_sketch) {
+	/*
+	if (buckets == other_sketch.buckets
+		&& depth == other_sketch.depth) {
+		for (int i = 0; i < depth; i += 1) {
+			for (int j = 0; j < buckets; j += 1) {
+				if (rand_array[i][j] != other_sketch.rand_array[i][j]) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	return false;*/
+	return 0;
 }
 
-int ams_sketch::obj_count(const OBJ& obj){
-    int *estimates = new int[depth];
-    for(int i = 0; i < depth; i += 1){
-        int hash = get_hash_value(obj, i);
-        int mult = get_mult_factor(obj, i);
-        get_estimate(hash, mult, i, estimates);
-    }
-    return get_final_estimates(estimates);
+int ams_sketch::obj_count(const OBJ& obj) {
+	int *estimates = new int[depth];
+	for (int i = 0; i < depth; i += 1) {
+		estimates[i] = 0;
+		int hash = get_hash_value(obj, i);
+		int mult = get_mult_factor(obj, i);
+		get_estimate(hash, mult, i, estimates);
+	}
+	int ans =  get_final_estimates(estimates);
+	free(estimates);
+	return ans;
 }
 
-int ams_sketch::get_hash_value(const OBJ& obj, int idx){
-    // not implemented
-}
-
-int ams_sketch::get_mult_factor(const OBJ& obj, int idx){
-    // not implemented
-}
 
 // void? better return something!
-void ams_sketch::get_estimate(int hash, int mult, int idx, int* estimates){
-    if(mult & 1){
-        estimates[idx] += sketch[idx][hash];
-    }else{
-        estimates[idx] -= sketch[idx][hash];
-    }
+void ams_sketch::get_estimate(int hash, int mult, int idx, int* estimates) {
+	if (mult & 1) {
+		estimates[idx] += sketch[idx][hash];
+	}
+	else {
+		estimates[idx] -= sketch[idx][hash];
+	}
 }
 
-int ams_sketch::get_final_estimates(int* estimates){
-    int count = -1;
-    if(depth == 1){
-        return estimates[0];
-    }else{
-        return get_median(estimates, depth);
-    }
+int ams_sketch::get_final_estimates(int* estimates) {
+	return get_median(estimates, depth);
 }
 
-int ams_sketch::get_estimateF2(){
-    int *estimates = mult_by_position(sketch, sketch);
-    return get_final_estimates(estimates);
+int ams_sketch::get_estimateF2() {
+	int *estimates = mult_by_position(sketch, sketch);
+	return get_final_estimates(estimates);
 }
 
-int* ams_sketch::mult_by_position(int** s1, int** s2){
-    int res = new int[depth];
-    for(int i = 0; i < depth; i += 1){
-        for(int j = 0; j < buckets; j += 1){
-            res[i] += s1[i][j] * s2[i][j];
-        }
-    }
-    return res;
+int* ams_sketch::mult_by_position(int** s1, int** s2) {
+	int* res = new int[depth];
+	for (int i = 0; i < depth; i += 1) {
+		res[i] = 0;
+		for (int j = 0; j < buckets; j += 1) {
+			res[i] += s1[i][j] * s2[i][j];
+		}
+	}
+	return res;
 }
 
-int ams_sketch::get_innerproduct(int** other_sketch){
-    if(!is_compatible(other_sketch)){
-        fprintf(stderr, "%s\n", "not compatible! in ams_sketch.cpp get_innerproduct()");
-        return INT_MIN;
-    }
-    int* estimates = mult_by_position(sketch, other_sketch);
-    return get_final_estimates(estimates);
+int ams_sketch::get_innerproduct(const ams_sketch& other_sketch) {
+	if (!is_compatible(other_sketch)) {
+		fprintf(stderr, "%s\n", "not compatible! in ams_sketch.cpp get_innerproduct()");
+		return INT_MIN;
+	}
+	int* estimates = mult_by_position(sketch, other_sketch.sketch);
+	return get_final_estimates(estimates);
 }
 
-int ams_sketch::set_zero(){
-    for(int i = 0; i < depth; i += 1){
-        for(int j = 0; j < buckets; j += 1){
-            sketch[i][j] = 0;
-        }
-    }
+int ams_sketch::set_zero() {
+	for (int i = 0; i < depth; i += 1) {
+		for (int j = 0; j < buckets; j += 1) {
+			sketch[i][j] = 0;
+		}
+	}
+	return 0;
+}
+
+int main() {
+	ifstream in1;
+	in1.open("C:\\Users\\AndrewHuang\\Documents\\GitHub\\course_pku\\Algorithm Design and Analysis\\Project\\skimmed-sketch-test1");
+	int size = 0;
+	in1 >> size;
+	ams_sketch a_s;
+	for (int i = 0; i < size; i += 1) {
+		int tmp = 0;
+		in1 >> tmp;
+		a_s.insert(tmp);
+	}
+	cout << a_s.get_estimateF2();
+	return 0;
 }
