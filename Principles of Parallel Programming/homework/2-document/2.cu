@@ -11,16 +11,20 @@
 #include <math.h>
 #include <cuda_runtime.h>
 
+
+// micros
 #define M_PI_2        1.57079632679489661923	/* pi/2 */
 #define M_PI_2_INV    (1.0/M_PI_2)
 #define M_2_SQRTPI    1.12837916709551257390    /* 2/sqrt(pi) */
-#define ERF_COEF      (1.0/M_2_SQRTPI)
-#define threhold      1000000
-#define SIZE          100000
+#define ERF_COEF      (1.0/M_2_SQRTPI)          // deprecated
+#define threhold      1000000                   // return approximate ans if > threhold
+#define SIZE          100000                    // input size
 
+
+// data from here!
 const char* FILE_NAME = "homework2-input";
 
-
+// verification on cpu
 void verification(double* input, int size) {
 	double ans = 0.0;
 	for (int i = 0; i < size; i += 1) {
@@ -30,7 +34,7 @@ void verification(double* input, int size) {
 	return;
 }
 
-// print some basic parameters
+// print some basic parameters, for better performance
 void printDeviceProp(const cudaDeviceProp &prop) {
 	printf("Device Name : %s.\n", prop.name);
 	printf("totalGlobalMem : %d.\n", prop.totalGlobalMem);
@@ -84,13 +88,16 @@ bool InitCUDA()
 // kernel function here
 __global__ static void calc(double* gpuans, double* gpuinput) {
 	__shared__ double tmp[100];
+
 	int bid = blockIdx.x * 10 + blockIdx.y;
 	int tid = threadIdx.x * 10 + threadIdx.y;
 
 	int tidx = bid * 1000 + tid * 10;
 	tmp[tid] = 0;
 	for (int i = 0; i < 10; i += 1) {
-		double idx = gpuinput[tidx + i]; // base line inplementation <-- cache it!
+		// base line inplementation <-- cache it!
+		// <-- actually won't be faster, at least on my gpu
+		double idx = gpuinput[tidx + i];
 		if (idx < threhold) {
 			tmp[tid] = tmp[tid] + 1 / (1 + exp(-idx));
 		}
@@ -99,28 +106,36 @@ __global__ static void calc(double* gpuans, double* gpuinput) {
 			tmp[tid] = tmp[tid] + M_PI_2_INV * atan(M_PI_2 * (idx));
 		}
 	}
+	// make sure all threads are done
 	__syncthreads();
 
-    // rubbish code
+    // rubbish code, but works
+	// now we only focuse on [0, 64)
 	if (tid > 63) {
 		tmp[tid - 36] = tmp[tid] + tmp[tid - 36];
 	}
 	__syncthreads();
+	// each time we reduce the remained size by half
+	// 64 -> 32 -> 16 -> ... -> 1
 	int i = 32;
 	while (i != 0) {
 		if (tid < i) {
 			tmp[tid] = tmp[tid + i] + tmp[tid];
 		}
+		// is everyone done...?
 		__syncthreads();
+		// yes! let's start the next loop!
 		i /= 2;
 	}
+	// save ans in this block
 	if (tid == 0) {
 		gpuans[bid] = tmp[0];
 	}
 }
 
 void read_input(double* input, int size) {
-    //what if choosing mmap()?
+    // what if choosing mmap()?... but how to use mmap()?
+	// emmmm.... won't be faster, on local machine
 	FILE* fp = fopen(FILE_NAME, "r");
 	if (fp) {
 		for (int i = 0; i < size; i += 1) {
@@ -145,10 +160,12 @@ int main() {
 	free(warmup);
 	cudaFree(gpuwarmup);
 
-	//
+	// 100000 numbers are devided to 100 blocks, with one block having 100 threads,
+	// and each therad calculate 10 numbers(and access to memory is almost aligned)
 	dim3 dimBlock(10, 10);
 	dim3 dimGrid(10, 10);
 
+	// time on cpu, deprecated
 	clock_t start, stop;
 	start = clock();
 
@@ -165,6 +182,7 @@ int main() {
 	calc << <dimGrid, dimBlock >> >(gpuans, gpuinput);
 	cudaMemcpy(ans, gpuans, sizeof(double) * 100, cudaMemcpyDeviceToHost);
 
+	// the last step of reduce is done on cpu, only 100 numbers
 	double res = 0.0;
 	for (int i = 0; i < 100; i += 1) {
 		res += ans[i];
@@ -174,12 +192,16 @@ int main() {
     free(ans);
 	cudaFree(gpuinput);
 	stop = clock();
+	// that's cpu time, not accurate
 	double t_ns = (stop - start) / (double)(CLOCKS_PER_SEC);
 	printf("%10.10f s\n", t_ns);
 	printf("result is: %10.10f. \n", res);
+	// am i right?
 	verification(input, SIZE);
 	free(input);
-	scanf("%ld", res);
+
+	// for debug on local machine
+	//scanf("%ld", res);
 	return 0;
 }
 
