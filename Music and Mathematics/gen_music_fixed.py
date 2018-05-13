@@ -109,41 +109,42 @@ def get_seq1():
     return seq1
 
 def get_seq2():
-    # basic elements
-    m_0_up4_7   = [BL(), up_fa(4), ti(4)];
-    m_0_2_up4   = [BL(), re(4), up_fa(4)];
-    m_7_up1_2   = [ti(), up_do(5), re(5)];
-    m_0_3_7     = [BL(), mi(4), ti(4)];
-    m_0_up1_5   = [BL(), up_do(4), so(4)];
-    m_0_3_up4   = [BL(), mi(4), up_fa(4)];
-    m_0_up1_up4 = [BL(), up_do(4), up_fa(4)];
-    m_0_3_5     = [BL(), mi(4), so(4)];
-    m_0_up3_7   = [BL(), fa(4), ti(4)]; # we treat #E as F
-    m_0_up1_up5 = [BL(), up_do(4), up_so(4)];
-    m_0_2_up4   = [BL(), re(4), up_fa(4)];
-    m_0_1_5     = [BL(), do(4), so(4)];
-    m_0_up3_up5 = [BL(), fa(4), up_so(4)];
-    m_0_up1_2   = [BL(), up_do(4), re(4)];
-    m_0_7_up1   = [BL(), ti(3), up_do(4)];
-    m_0_6_up1   = [BL(), la(3), up_do(4)];
-    m_0_7_2     = [BL(), ti(3), re(4)];
-    m_0_up1_3   = [BL(), up_do(4), mi(4)];
+    curr_oct = 4;
+    # basic elements, "m" stands for "metre"
+    m_0_up4_7   = [BL(), up_fa(curr_oct), ti(curr_oct)];
+    m_0_2_up4   = [BL(), re(curr_oct), up_fa(curr_oct)];
+    m_7_up1_2   = [ti(curr_oct), up_do(curr_oct + 1), re(curr_oct + 1)];
+    m_0_3_7     = [BL(), mi(curr_oct), ti(curr_oct)];
+    m_0_up1_5   = [BL(), up_do(curr_oct), so(curr_oct)];
+    m_0_3_up4   = [BL(), mi(curr_oct), up_fa(curr_oct)];
+    m_0_up1_up4 = [BL(), up_do(curr_oct), up_fa(curr_oct)];
+    m_0_3_5     = [BL(), mi(curr_oct), so(curr_oct)];
+    m_0_up3_7   = [BL(), fa(curr_oct), ti(curr_oct)]; # we treat #E as F
+    m_0_up1_up5 = [BL(), up_do(curr_oct), up_so(curr_oct)];
+    m_0_2_up4   = [BL(), re(curr_oct), up_fa(curr_oct)];
+    m_0_1_5     = [BL(), do(curr_oct), so(curr_oct)];
+    m_0_up3_up5 = [BL(), fa(curr_oct), up_so(curr_oct)];
+    m_0_up1_2   = [BL(), up_do(curr_oct), re(curr_oct)];
+    m_0_7_up1   = [BL(), ti(curr_oct - 1), up_do(curr_oct)];
+    m_0_6_up1   = [BL(), la(curr_oct - 1), up_do(curr_oct)];
+    m_0_7_2     = [BL(), ti(curr_oct - 1), re(curr_oct)];
+    m_0_up1_3   = [BL(), up_do(curr_oct), mi(curr_oct)];
 
     # parts
-    part1  = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part2  = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part3  = [m_0_3_7, m_0_up4_7, m_0_up1_5];
-    part4  = [m_0_2_up4, m_0_3_up4, m_0_2_up4];
-    part5  = [m_0_up1_up4, m_0_2_up4, m_0_3_5];
-    part6  = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part7  = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part8  = [m_0_up3_7, m_0_up4_7, m_0_up1_up5];
-    part9  = [m_0_2_up4, m_0_up1_2, m_0_7_up1];
-    part10 = [m_0_6_up1, m_0_7_2, m_0_up1_3];
-    part11 = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part12 = [m_0_up4_7, m_0_2_up4, m_7_up1_2];
-    part13 = [m_0_3_7, m_0_up4_7, m_0_1_5];
-    part14 = [m_0_2_up4, m_0_up3_up5, m_0_3_up4];
+    part1  = m_0_up4_7 + m_0_2_up4 +  m_7_up1_2;
+    part2  = m_0_up4_7 + m_0_2_up4 + m_7_up1_2;
+    part3  = m_0_3_7 + m_0_up4_7 + m_0_up1_5;
+    part4  = m_0_2_up4 + m_0_3_up4 + m_0_2_up4;
+    part5  = m_0_up1_up4 + m_0_2_up4 + m_0_3_5;
+    part6  = m_0_up4_7 + m_0_2_up4 + m_7_up1_2;
+    part7  = m_0_up4_7 + m_0_2_up4 + m_7_up1_2;
+    part8  = m_0_up3_7 + m_0_up4_7 + m_0_up1_up5;
+    part9  = m_0_2_up4 + m_0_up1_2 + m_0_7_up1;
+    part10 = m_0_6_up1 + m_0_7_2 + m_0_up1_3;
+    part11 = m_0_up4_7 + m_0_2_up4 + m_7_up1_2;
+    part12 = m_0_up4_7 + m_0_2_up4 + m_7_up1_2;
+    part13 = m_0_3_7 + m_0_up4_7 + m_0_1_5;
+    part14 = m_0_2_up4 + m_0_up3_up5 + m_0_3_up4;
     part15 = [BL()] * 9;
 
     # seq
@@ -153,20 +154,21 @@ def get_seq2():
 def get_seq3():
     curr_oct = 3;
     curr_dur = 24;
-    part1  = [ti(curr_oct, curr_dur * 9)];
+
+    part1  = [ti(curr_oct, curr_dur * 9)]; # maybe it's better than [ti()] * 9;
     part2  = [la(curr_oct, curr_dur * 9)];
     part3  = [double(so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(mi(curr_oct)), BL()];
     part4  = [double(re(curr_oct)), BL(), double(up_do(curr_oct)), BL(), double(ti(curr_oct - 1)), BL()];
     part5  = [up_fa(curr_oct, curr_dur * 9)];
     part6  = part1;
     part7  = part2;
-    part8  = [double(up_so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(mi(curr_oct)), BL()];
+    part8  = [double(up_so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(fa(curr_oct)), BL()];
     part9  = [double(up_fa(curr_oct)), BL(), double(ti(curr_oct - 1)), BL(), double(up_do(curr_oct)), BL()];
     part10 = part5;
     part11 = part1;
     part12 = part2;
     part13 = part3;
-    part14 = part4;
+    part14 = [double(re(curr_oct)), BL(), double(up_do(curr_oct)), BL(), double(up_fa(curr_oct)), BL()];
     part15 = [ti(curr_oct - 1, curr_dur * 4)] + [BL()] * 5;
 
     seq3 = part1 + part2 + part3 + part4 + part5 + part6 + part7 + part8 + part9 + part10 + part11 + part12 + part13 + part14 + part15;
@@ -175,20 +177,21 @@ def get_seq3():
 def get_seq4():
     curr_oct = 2;
     curr_dur = 24;
-    part1  = [ti(curr_oct, curr_dur * 9)];
+
+    part1  = [ti(curr_oct, curr_dur * 9)]; # maybe its better than [ti()] * 9;
     part2  = [la(curr_oct, curr_dur * 9)];
     part3  = [double(so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(mi(curr_oct)), BL()];
     part4  = [double(re(curr_oct)), BL(), double(up_do(curr_oct)), BL(), double(ti(curr_oct - 1)), BL()];
     part5  = [up_fa(curr_oct, curr_dur * 9)];
     part6  = part1;
     part7  = part2;
-    part8  = [double(up_so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(mi(curr_oct)), BL()];
+    part8  = [double(up_so(curr_oct)), BL(), double(up_fa(curr_oct)), BL(), double(fa(curr_oct)), BL()];
     part9  = [double(up_fa(curr_oct)), BL(), double(ti(curr_oct - 1)), BL(), double(up_do(curr_oct)), BL()];
     part10 = part5;
     part11 = part1;
     part12 = part2;
     part13 = part3;
-    part14 = part4;
+    part14 = [double(re(curr_oct)), BL(), double(up_do(curr_oct)), BL(), double(up_fa(curr_oct)), BL()];
     part15 = [ti(curr_oct - 1, curr_dur * 4)] + [BL()] * 5;
 
     seq4 = part1 + part2 + part3 + part4 + part5 + part6 + part7 + part8 + part9 + part10 + part11 + part12 + part13 + part14 + part15;
@@ -198,7 +201,5 @@ def get_seq4():
 for key, item in Freqs_options.items():
     Freqs = item
     seq1 = get_seq1()
-    seq2 = get_seq2();
     doc.playNoteSeq(seq1, ScoreDraft.Piano())
-    #doc.playNoteSeq(seq2, ScoreDraft.Piano())
     doc.mixDown("test_{}.wav".format(key))

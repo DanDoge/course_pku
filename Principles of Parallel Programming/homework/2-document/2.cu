@@ -167,7 +167,6 @@ int main() {
 
 	// time on cpu, deprecated
 	clock_t start, stop;
-	start = clock();
 
 	double* input = (double*)malloc(sizeof(double) * SIZE);
 	double* gpuinput;
@@ -175,11 +174,14 @@ int main() {
 	read_input(input, SIZE);
 	cudaMemcpy(gpuinput, input, sizeof(double) * SIZE, cudaMemcpyHostToDevice);
 
+
 	double* ans = (double*)calloc(100, sizeof(double));
 	double* gpuans;
 	cudaMalloc((void**)&gpuans, sizeof(double) * 100);
 	cudaMemcpy(gpuans, ans, sizeof(double) * 100, cudaMemcpyHostToDevice);
+	start = clock();
 	calc << <dimGrid, dimBlock >> >(gpuans, gpuinput);
+	stop = clock();
 	cudaMemcpy(ans, gpuans, sizeof(double) * 100, cudaMemcpyDeviceToHost);
 
 	// the last step of reduce is done on cpu, only 100 numbers
@@ -191,11 +193,10 @@ int main() {
 	cudaFree(gpuans);
     free(ans);
 	cudaFree(gpuinput);
-	stop = clock();
 	// that's cpu time, not accurate
 	double t_ns = (stop - start) / (double)(CLOCKS_PER_SEC);
-	printf("%10.10f s\n", t_ns);
-	printf("result is: %10.10f. \n", res);
+	printf("cpu time is %10.10f s, please use nvprof to get more accurate time\n", t_ns);
+	printf("result(on gpu) is: %10.10f. \n", res);
 	// am i right?
 	verification(input, SIZE);
 	free(input);
