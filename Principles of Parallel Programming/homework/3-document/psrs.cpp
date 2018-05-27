@@ -66,8 +66,7 @@ int main(int argc, char* argv[])
 	MPI_Scatter(tovoid(v), size, MPI_INT, tovoid(this_array), size, MPI_INT, 0, MPI_COMM_WORLD);
 
     // and each thread sort its own part
-    vector<int> tmp_array(size);
-	mergeSort(this_array, tmp_array, 0, (size - 1));
+    std::sort(this_array.begin(), this_array.end());
 
 // choose pivot!
 
@@ -82,8 +81,7 @@ int main(int argc, char* argv[])
 // select pivot!
 
     if(rank == 0){
-        tmp_array.resize(size_of_threads * size_of_threads);
-        mergeSort(pivot_tot, tmp_array, 0, (size_of_threads * size_of_threads) - 1);
+        std::sort(pivot_tot.begin(), pivot_tot.end());
         for(int i = 0; i < size_of_threads - 1; i += 1){
             pivot[i] = pivot_tot[(i + 1) * size_of_threads];
         }
@@ -124,8 +122,8 @@ int main(int argc, char* argv[])
         MPI_Gatherv(&this_array[class_start[thread]], class_length[thread], MPI_INT, tovoid(received), toint(received_length), toint(received_start), MPI_INT, thread, MPI_COMM_WORLD);
     }
 
-    tmp_array.resize(received.size());
-    mergeSort(received, tmp_array, 0, received.size() - 1);
+    std::sort(received.begin(), received.end());
+
     int this_send_length = received_start[size_of_threads - 1] + received_length[size_of_threads - 1];
 
 // then collect them!
@@ -145,17 +143,7 @@ int main(int argc, char* argv[])
 
 // collect parts, sort all
 
-	vector<int> sorted;
-	if(rank == 0) {
-		sorted.resize(n);
-	}
-
-    MPI_Gatherv(tovoid(received), this_send_length, MPI_INT, tovoid(sorted), toint(send_length), toint(send_starts), MPI_INT, 0, MPI_COMM_WORLD);
-
-	if(rank == 0) {
-        tmp_array.resize(n);
-		mergeSort(sorted, tmp_array, 0, (n - 1));
-    }
+    MPI_Gatherv(tovoid(received), this_send_length, MPI_INT, tovoid(v), toint(send_length), toint(send_starts), MPI_INT, 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
@@ -168,82 +156,3 @@ int main(int argc, char* argv[])
     verification(v);
     return 0;
 }
-
-
-
-
-
-/********** Merge Function **********/
-void merge(vector<int> &a, vector<int> &b, int l, int m, int r) {
-
-	int h, i, j, k;
-	h = l;
-	i = l;
-	j = m + 1;
-
-	while((h <= m) && (j <= r)) {
-
-		if(a[h] <= a[j]) {
-
-			b[i] = a[h];
-			h++;
-
-			}
-
-		else {
-
-			b[i] = a[j];
-			j++;
-
-			}
-
-		i++;
-
-		}
-
-	if(m < h) {
-
-		for(k = j; k <= r; k++) {
-
-			b[i] = a[k];
-			i++;
-
-			}
-
-		}
-
-	else {
-
-		for(k = h; k <= m; k++) {
-
-			b[i] = a[k];
-			i++;
-
-			}
-
-		}
-
-	for(k = l; k <= r; k++) {
-
-		a[k] = b[k];
-
-		}
-
-	}
-
-/********** Recursive Merge Function **********/
-void mergeSort(vector<int> &a, vector<int> &b, int l, int r) {
-
-	int m;
-
-	if(l < r) {
-
-		m = (l + r)/2;
-
-		mergeSort(a, b, l, m);
-		mergeSort(a, b, (m + 1), r);
-		merge(a, b, l, m, r);
-
-		}
-
-	}
