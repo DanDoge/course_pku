@@ -5,9 +5,11 @@
 #include <chrono>
 #include <random>
 #include <vector>
+#include <queue>
 #include <mpi.h>
 using namespace std;
 
+// used in multi_merge()
 struct node{
     int idx_start;
     int idx_in_array;
@@ -17,14 +19,14 @@ struct node{
         idx_in_array = i_i_a;
         val = v;
     }
-    bool operator<(const node& obj){
+    friend bool operator<(const node& obj1, const node& obj2){
         // used in std::priority_queue
-        return val > obj.val;
+        return obj1.val > obj2.val;
     }
-}
+};
 
 
-
+// convert std::vector to pointer, although vec.data() is introduced in c++11
 #define tovoid(x) (void*)&(x)[0] // convert std::vector<int> ==> void*
 #define toint(x)  (int*)&(x)[0]  // likely, cvt std::vector<int> to int*
 
@@ -37,6 +39,7 @@ auto constexpr n = 100'000'000;
 template <class T>
 void print(std::vector<T> const& a)
 {
+// amazing code....
 #if PRINT_ARRAY
     std::copy(
         std::begin(a),
@@ -72,9 +75,12 @@ int main(int argc, char* argv[])
 	int rank;
 	int size_of_threads;
 	MPI_Init(&argc, &argv);
+    // what's my rank...
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // and how many peer threads(include me) do i have?
 	MPI_Comm_size(MPI_COMM_WORLD, &size_of_threads);
-	int size = n / size_of_threads; // suppose size_of_threads | n
+    // suppose size_of_threads | n
+	int size = n / size_of_threads;
 
 // scatter original array to each thread
 
@@ -91,26 +97,28 @@ int main(int argc, char* argv[])
     for(int i = 0; i < size_of_threads; i += 1){
         pivot[i] = this_array[i * size / size_of_threads];
     }
+    // and gather them
     MPI_Gather(tovoid(this_array), size_of_threads, MPI_INT, tovoid(pivot_tot), size_of_threads, MPI_INT, 0, MPI_COMM_WORLD);
 
 
 // select pivot!
 
     if(rank == 0){
-
-        vector<int*> start(size_of_threads);
-        vector<int> length(size_of_threads);
+        vector<int*> s(size_of_threads);
+        vector<int> l(size_of_threads);
         for(int i = 0; i < size_of_threads; i += 1){
-            start[i] = &pivot_tot[i * size_of_threads];
-            length[i] = size_of_threads;
+            s[i] = &pivot_tot[i * size_of_threads];
+            l[i] = size_of_threads;
         }
         vector<int> pivot_sorted(size_of_threads * size_of_threads);
-        multi_merge(&start[0], &length[0], size_of_threads, pivot_sorted, size_of_threads * size_of_threads);
+        // seems to be faster, i do not choose loser tree for its conplexity
+        multi_merge(&s[0], &l[0], size_of_threads, toint(pivot_sorted), size_of_threads * size_of_threads);
 
         for(int i = 0; i < size_of_threads - 1; i += 1){
             pivot[i] = pivot_sorted[(i + 1) * size_of_threads];
         }
     }
+    // and send global pivot to all processes
     MPI_Bcast(tovoid(pivot), size_of_threads - 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 // class partition
@@ -126,6 +134,7 @@ int main(int argc, char* argv[])
             idx += 1;
         }
     }
+    // the last class
     class_start[size_of_threads - 1] = idx;
     class_length[size_of_threads - 1] = size - idx;
 
@@ -136,23 +145,28 @@ int main(int argc, char* argv[])
     vector<int> received_start(size_of_threads);
 
     for(int thread = 0; thread < size_of_threads; thread += 1){
+        // how long should i send?
         MPI_Gather(&class_length[thread], 1, MPI_INT, tovoid(received_length), 1, MPI_INT, thread, MPI_COMM_WORLD);
         if(rank == thread){
             received_start[0] = 0;
             for(int i = 1; i < size_of_threads; i += 1){
                 received_start[i] = received_start[i - 1] + received_length[i - 1];
             }
+            // how long should i receive?
             received.resize(received_start[size_of_threads - 1] + received_length[size_of_threads - 1]);
         }
+        // send & receive them!
         MPI_Gatherv(&this_array[class_start[thread]], class_length[thread], MPI_INT, tovoid(received), toint(received_length), toint(received_start), MPI_INT, thread, MPI_COMM_WORLD);
     }
 
-    vector<int*> start(size_of_threads);
+    vector<int*> s(size_of_threads);
     for(int i = 0; i < size_of_threads; i += 1){
-        start[i] = received + received_start[i];
+        s[i] = toint(received) + received_start[i];
     }
-    multi_merge(&start[0], received_length, size_of_threads, v, n);
+    // sort my part
+    multi_merge(&s[0], toint(received_length), size_of_threads, toint(v), n);
 
+    // how long should i send to root process?
     int this_send_length = received_start[size_of_threads - 1] + received_length[size_of_threads - 1];
 
 // then collect them!
@@ -160,6 +174,7 @@ int main(int argc, char* argv[])
     vector<int> send_length(size_of_threads);
     vector<int> send_starts(size_of_threads);
 
+    // tell root process how long i will send
     MPI_Gather(&this_send_length, 1, MPI_INT, tovoid(send_length), 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if(rank == 0){
@@ -170,35 +185,41 @@ int main(int argc, char* argv[])
     }
 
 
-// collect parts, sort all
+// collect parts, now the original array is already sorted
 
     MPI_Gatherv(tovoid(v), this_send_length, MPI_INT, tovoid(v), toint(send_length), toint(send_starts), MPI_INT, 0, MPI_COMM_WORLD);
 
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
 
+    // am i faster than std::sort()? --> usually yes...but that's under -O2!
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
+
+    // every process print its time
     std::cout << "Time to sort a array of "
         << n << " ints : " << diff.count() << " s\n";
 
-    verification(v);
+    // root process check if i am right
+    if(rank == 0){
+        verification(v);
+    }
     return 0;
 }
 
 
 // multi_merge, use std::priority_queue(binary-tree), loser-tree seems to be too conplicated..
-
 void multi_merge(int* start[], int length[], int size, int result[], int result_length){
     priority_queue<node> queue;
     for(int i = 0; i < size; i += 1){
         if(length[i]){
+            // heads of arrays
             queue.push(node(i, 0, start[i][0]));
         }
     }
 
     int idx_res = 0;
-    while(!priority_queue.empty() && idx_res < result_length){
+    while(!queue.empty() && idx_res < result_length){
         node top = queue.top();
         queue.pop();
 
@@ -206,6 +227,7 @@ void multi_merge(int* start[], int length[], int size, int result[], int result_
         idx_res += 1;
 
         if(top.idx_in_array + 1 < length[top.idx_start]){
+            // what's the next element, if any?
             queue.push(node(top.idx_start, top.idx_in_array + 1, start[top.idx_start][top.idx_in_array + 1]));
         }
     }
