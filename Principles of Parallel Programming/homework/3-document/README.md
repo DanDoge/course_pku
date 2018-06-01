@@ -8,7 +8,7 @@
 
 Parallel Sorting by Regular Sampling(以下简称PSRS)算法, 首先将输入数据平均分配给各个核, 在各个核中排序, 收集各自局部的枢轴值(pivot), 再取出枢轴值的枢轴值(全局的pivot), 按全局pivot将各个核的数组分类, 每一个核处理两个枢轴值之间的数字(这里的实现取[pivot[i - 1], pivot[i]), 即左闭右开的区间划分), 最后根线程收集数组.
 
-具体的算法参考, [这一篇论文](https://pdfs.semanticscholar.org/f796/9a5351dea0374e985190356505ba4f4f26b1.pdf), 代码实现上参考了[这里的实现](http://csweb.cs.wfu.edu/bigiron/LittleFE-PSRS/build/html/PSRSimplementation.html)
+具体的算法参考, [这一篇论文](https://pdfs.semanticscholar.org/f796/9a5351dea0374e985190356505ba4f4f26b1.pdf)
 
 #### MPI用法
 
@@ -18,7 +18,7 @@ Parallel Sorting by Regular Sampling(以下简称PSRS)算法, 首先将输入数
 
 以单线程的std::sort作为baseline, -O2优化, 排序1e8的数组所需时间约12s
 
-下面列出在进程数$n = 4$, 数组大小变化, 排序算法采用merge_sort, 编译选项-O1时的时间消耗
+下面列出在进程数$n = 4$, 数组大小变化, 排序算法采用merge_sort(二路归并), 编译选项-O1时的时间消耗
 
 | 数组大小 | 时间 |
 | --- | ---|
@@ -27,7 +27,7 @@ Parallel Sorting by Regular Sampling(以下简称PSRS)算法, 首先将输入数
 | 50000000 | 55.875 +- 0.015s |
 | 100000000 | 112.35 +- 0.05s |
 
-发现时间大致按照线性增长, 符合复杂度分析($O(\frac{n}{p} \log \frac{n}{p})$), 算法实现没有问题
+发现时间大致按照线性增长, 符合复杂度预期($O(\frac{n}{p} \log \frac{n}{p})$), 算法实现没有问题
 
 下面分别列出在psrs内使用std::sort排序和使用multi_merge排序, 使用不同的进程数量, 编译选项-O2, 比较数组大小100000000时的排序时间
 
@@ -46,7 +46,13 @@ Parallel Sorting by Regular Sampling(以下简称PSRS)算法, 首先将输入数
 
 取多次运行的平均时间为最终时间, 为6.47s(若取最短时间, 可以是6.42s)
 
-代码位置: (mc:~) ./users/Huang.Daoji/3/my_sort_mergesort.cpp, ./users/Huang.Daoji/3/\* 为各种已用mpi编译好程序
+代码位置: (mc:~) ./users/Huang.Daoji/3/my_sort_mergesort.cpp, ./users/Huang.Daoji/3/\* 为各种已用mpi编译好程序, 最终结果采用
+
+```shell
+mpirun -n 8 ./my_sort_mergesort
+```
+
+的结果
 
 
 ### 代码实现
