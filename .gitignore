@@ -8,3 +8,5 @@
 *.snm
 *.out
 *.nav
+
+/Music and Mathematics/slides/*.pdf
