@@ -18,7 +18,6 @@
 
 // to-do: 没有必要设计三个类出来, 事实上两个流是要共享很多东西的
 
-#include "stdafx.h"
 #include <fstream>
 #include <iostream>
 #include <set>
@@ -465,7 +464,7 @@ public:
 	}
 	void skim_dense(hash_table& h, domain& d) {
 		cout << "in skim_dense..." << endl;
-		int threhold = (h.n / s1) * 0.1;
+		int threhold = (h.n / s1) * 0.5;
 		for (int i = 0; i < d.domain_size; i += 1) {
 			h.estimate_value[i] = 0;
 		}
@@ -473,7 +472,7 @@ public:
 		printf("loop1\n");
 		for (int i = 0; i < d.domain_size; i += 1) {
 			if (i % 1000 == 0) {
-				printf("the %d-th element...\n", i);
+			//	printf("the %d-th element...\n", i);
 			}
 			T u = d.domain_value(i);
 			int* f = new int[s1];
@@ -490,7 +489,7 @@ public:
 		printf("loop2\n");
 		for (int i = 0; i < d.domain_size; i += 1) {
 			if (i % 1000 == 0) {
-				printf("the %d-th element...\n", i);
+			//	printf("the %d-th element...\n", i);
 			}
 			if (h.estimate_value[d.domain_value(i)] > 0) {
 				for (int j = 0; j < s1; j += 1) {
@@ -509,7 +508,7 @@ public:
 			j[p] = 0;
 			for (int i = 0; i < d.domain_size; i += 1) {
 				if (i % 1000 == 0) {
-					printf("the %d-th element...\n", i);
+				//	printf("the %d-th element...\n", i);
 				}
 				if (v[d.domain_value(i)] > 0) {
 					int q = hash_template(p, d.domain_value(i));
@@ -567,6 +566,10 @@ int main() {
 	domain d;
 	skim_sketch ss = skim_sketch(f1, f2, d);
 	cout << ss.join_size;
+
+	ofstream out;
+	out.open("C:\\Users\\AndrewHuang\\Documents\\GitHub\\course_pku\\Algorithm Design and Analysis\\Project\\skimmed_ans");
+	out << ss.join_size;
 
 	return 0;
 }
