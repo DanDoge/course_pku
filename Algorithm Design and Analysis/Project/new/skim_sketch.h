@@ -34,9 +34,13 @@ private:
 
 void get_hash_table(std::vector<int> & f, Hashtable & h){
     for(int i = 0; i < f.size(); i += 1){
+        vector<int> idx(s1);
+        vector<int> delta(s1);
         for(int j = 0; j < s1; j += 1){
-            h[j][hash_template(j, f[i])] += ((hash_template(f[i], j) & 1) << 1) - 1;
+            idx[i] = hash_template(j, f[i]);
+            delta[i] = ((hash_template(f[i], j) & 1) << 1) - 1;
         }
+        h.inc(idx, delta, -1);
     }
 }
 

@@ -1,12 +1,10 @@
 #include "ams_sketch.h"
 
-ams_sketch::ams_sketch(size_t c, size_t c_w, int* s){
+ams_sketch::ams_sketch(size_t c, size_t c_w, int* s): hash_table(32, cell_width, cells){
     cells = c;
     cell_width = c_w;
-    hash_table.resize(cells);
     seeds.resize(cells);
     for(int i = 0; i < cells; i += 1){
-        hash_table[i].resize(cell_width);
         seeds[i] = s[i];
     }
 
@@ -24,10 +22,10 @@ ams_sketch::insert_element(const string &ele, int freq = 1){
 
 int ams_sketch::update_sketch(int mult, int idx, int hash, int freq){
     if (mult & 1) {
-        hash_table[idx][hash % cell_width] += freq;
+        hash_table.inc(hash, freq, idx);
     }
     else {
-        hash_table[idx][hash % cell_width] -= freq;
+        hash_table.dec(hash, freq, idx);
     }
     return 0;
 }
@@ -48,7 +46,7 @@ void ams_sketch::mult_by_position(Hashtable &s1, Hashtable &s2, std::vector<int>
 	for (int i = 0; i < cells; i += 1) {
 		estimates[i] = 0;
 		for (int j = 0; j < cell_width; j += 1) {
-			estimates[i] += s1[i][j] * s2[i][j];
+			estimates[i] += s1.get(j, i) * s2.get(j, i);
 		}
 	}
 }
@@ -61,7 +59,7 @@ int ams_sketch::obj_count(const string & ele) {
         char mult_fac[16] = {};
         MurmurHash_x64_128(ele.c_str(), ele.size(), seeds[i], hash_val);
         MurmurHash_x64_128(ele.c_str(), ele.size(), seeds[i], mult_fac);
-		get_estimate(*(int* )hash, *(int* )mult, i, estimates);
+		get_estimate(*(int* )hash_val, *(int* )mult_fac, i, estimates);
 	}
 	int ans =  get_final_estimates(estimates);
 	return ans;
@@ -69,8 +67,8 @@ int ams_sketch::obj_count(const string & ele) {
 
 void ams_sketch::get_estimate(int hash, int mult, int idx, std::vector<int> & estimates) {
 	if (mult & 1) {
-		estimates[idx] += hash_table[idx][hash % cell_width];
+		estimates[idx] += hash_table.get(hash % cell_width, idx);
 	} else {
-		estimates[idx] -= hash_table[idx][hash % cell_width];
+		estimates[idx] -= hash_table.get(hash % cell_width, idx);
 	}
 }
