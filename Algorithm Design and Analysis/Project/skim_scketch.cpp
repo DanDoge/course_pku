@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <functional>
 #include <stdlib.h>
+#include <assert.h>
 using namespace std;
 
 #ifdef __GNUC__
@@ -17,6 +18,92 @@ using namespace std;
 #else
 #define FORCE_INLINE inline
 #endif
+
+//=========================================================================
+//= Multiplicative LCG for generating uniform(0.0, 1.0) random numbers    =
+//=   - x_n = 7^5*x_(n-1)mod(2^31 - 1)                                    =
+//=   - With x seeded to 1 the 10000th x value should be 1043618065       =
+//=   - From R. Jain, "The Art of Computer Systems Performance Analysis," =
+//=     John Wiley & Sons, 1991. (Page 443, Figure 26.2)                  =
+//=========================================================================
+double rand_val(int seed)
+{
+  const long  a =      16807;  // Multiplier
+  const long  m = 2147483647;  // Modulus
+  const long  q =     127773;  // m div a
+  const long  r =       2836;  // m mod a
+  static long x;               // Random int value
+  long        x_div_q;         // x divided by q
+  long        x_mod_q;         // x modulo q
+  long        x_new;           // New x value
+
+  // Set the seed if argument is non-zero and then return zero
+  if (seed > 0)
+  {
+    x = seed;
+    return(0.0);
+  }
+
+  // RNG using integer arithmetic
+  x_div_q = x / q;
+  x_mod_q = x % q;
+  x_new = (a * x_mod_q) - (r * x_div_q);
+  if (x_new > 0)
+    x = x_new;
+  else
+    x = x_new + m;
+
+  // Return a random value between 0.0 and 1.0
+  return((double) x / m);
+}
+
+//===========================================================================
+//=  Function to generate Zipf (power law) distributed random variables     =
+//=    - Input: alpha and N                                                 =
+//=    - Output: Returns with Zipf distributed random variable              =
+//===========================================================================
+int zipf(double alpha, int n)
+{
+  static int first = 1;      // Static first time flag
+  static double c = 0;          // Normalization constant
+  double z;                     // Uniform random number (0 < z < 1)
+  double sum_prob;              // Sum of probabilities
+  double zipf_value = 1;            // Computed exponential value to be returned
+  int    i;                     // Loop counter
+
+  // Compute normalization constant on first call only
+  if (first == 1)
+  {
+    for (i=1; i<=n; i++)
+      c = c + (1.0 / pow((double) i, alpha));
+    c = 1.0 / c;
+    first = 0;
+  }
+
+  // Pull a uniform random number (0 < z < 1)
+  do
+  {
+    z = rand_val(0);
+  }
+  while ((z == 0.0) || (z == 1.0));
+
+  // Map z to the value
+  sum_prob = 0;
+  for (i=1; i<=n; i++)
+  {
+    sum_prob = sum_prob + c / pow((double) i, alpha);
+    if (sum_prob >= z)
+    {
+      zipf_value = i;
+      break;
+    }
+  }
+
+  // Assert that zipf_value is between 1 and N
+  assert((zipf_value >=1) && (zipf_value <= n));
+
+  return(zipf_value);
+}
 
 static FORCE_INLINE uint32_t rotl32(uint32_t x, int8_t r)
 {
@@ -153,7 +240,7 @@ void MurmurHash3_x64_128(const void * key, const int len,
 
 #define T int
 #define s1 64 // hash函数个数
-#define s2 128// 桶的个数
+#define s2 256// 桶的个数
 
 static int inner_product(vector<int> & p, vector<int> & q, int length) {
 	int res = 0;
@@ -164,18 +251,16 @@ static int inner_product(vector<int> & p, vector<int> & q, int length) {
 }
 
 static int median(vector<int> & p, int length) {
-	vector<int> pv(p);
+	vector<int> pv(p.begin(), p.end());
 	nth_element(pv.begin(), pv.begin() + pv.size() / 2, pv.end());
 	return pv[length / 2];
 }
 
 
 int hash_template(int seed, int n) {
-	uint64_t *res = (uint64_t* )malloc(sizeof(uint64_t) * 2);
-	MurmurHash3_x64_128(&n, 1, seed, res);
-
-	int ans = (*res) & (s2 - 1);
-	free(res);
+	char res[16];
+	MurmurHash3_x64_128(&n, 4, seed, res);
+	int ans = (*(int* )res) & (s2 - 1);
 	return ans;
 }
 
@@ -185,8 +270,8 @@ int hash_template(int seed, int n) {
 class domain {
 public:
 	int domain_size;
-	domain() {
-		domain_size = 1000000;
+	domain(int d_s) {
+		domain_size = d_s;
 	}
 	int domain_value(int n) {
 		return n;
@@ -208,17 +293,25 @@ public:
 class hash_table {
 public:
 	int m;
-	int hashtable[s1][s2]; // s1 * s2, s1个hash函数, s2项
+	vector<vector<int> > hashtable; // s1 * s2, s1个hash函数, s2项
 	vector<vector<int> > epsilon;// m * s1, 全集有m个元素, 这个数组要求是four-wise independent的
 	vector<int> estimate_value;
 	int n;
 	hash_table() {
+		hashtable.resize(s1);
+		for(int i = 0; i < s1; i += 1){
+			hashtable[i].resize(s2);
+		}
 		m = n = 0;
 	}
 	hash_table(domain& d, FLOW& flow) {
 		cout << "in hash_table()" << endl;
 		m = d.domain_size;
 		n = flow.flow_length;
+		hashtable.resize(s1);
+		for(int i = 0; i < s1; i += 1){
+			hashtable[i].resize(s2);
+		}
 		epsilon.resize(m);
 		for (int i = 0; i < m; i += 1) {
 			epsilon[i].resize(s1);
@@ -226,12 +319,20 @@ public:
 				epsilon[i][j] = ((hash_template(i, j) & 1) << 1) - 1;
 			}
 		}
+		cout << "mid" << endl;
 		estimate_value.resize(m);
 		for (int i = 0; i < flow.flow_length; i += 1) {
+			cout << "!!!" << endl;
+			int f_l = flow.flow_element[i];
 			for (int j = 0; j < s1; j += 1) {
-				hashtable[j][hash_template(j, flow.flow_element[i])] += epsilon[flow.flow_element[i]][j];
+				cout  << i << " " << j << " " << hash_template(j, flow.flow_element[i]) << " " << epsilon[flow.flow_element[i]][j] << " " << flow.flow_element[i] << " ";
+				int tmp = hash_template(j, f_l);
+				hashtable[j][tmp] += epsilon[f_l][j];
+				cout << "!" << endl;
 			}
+			cout << "!!" << endl;
 		}
+		cout << "out hash_table()" << endl;
 	}
 	~hash_table() {
 	}
@@ -253,7 +354,7 @@ public:
 	}
 	void skim_dense(hash_table& h, domain& d) {
 		cout << "in skim_dense..." << endl;
-		int threhold = (h.n / s1) * 0.5;
+		int threhold = (h.n / s2) * 0.1;
 		for (int i = 0; i < d.domain_size; i += 1) {
 			h.estimate_value[i] = 0;
 		}
@@ -296,11 +397,12 @@ public:
 		return res;
 	}
 
-	int est_skim_join_size(hash_table& h1, hash_table& h2, domain& d) {
+	long long est_skim_join_size(hash_table& h1, hash_table& h2, domain& d) {
 		cout << "in est_skim_join_size..." << endl;
 		skim_dense(h1, d);
 		skim_dense(h2, d);
 		int j_dd = inner_product(h1.estimate_value, h2.estimate_value, d.domain_size);
+		cout << j_dd << endl; 
 		int j_ds = est_sub_join_size(h1.estimate_value, h2, d);
 		int j_sd = est_sub_join_size(h2.estimate_value, h1, d);
 		vector<int> j_sss(s1);
@@ -310,8 +412,8 @@ public:
 				j_sss[p] += h1.hashtable[p][q] * h2.hashtable[p][q];
 			}
 		}
-		int j_ss = median(j_sss, s1);
-		cout << "out est_skim_join_size." << endl;
+		long long j_ss = median(j_sss, s1);
+		cout << "out est_skim_join_size." << j_ss << endl;
 		return j_dd + j_ds + j_sd + j_ss;
 	}
 };
@@ -320,23 +422,27 @@ vector<int> cnt1(1000000);
 vector<int> cnt2(1000000);
 
 int main() {
-	int flow_size = 100000;
+	std::ios::sync_with_stdio(false);
+	rand_val(7);
+	int flow_size = 6000;
+	int domain_size = 10000;
 	FLOW f1 = FLOW(flow_size);
-	for(int i = 0; i < flow_size; i += 1){
-		int t = rand() % 1000000;
-		f1.flow_element[i] = t;
-		cnt1[t] += 1;
-	}
-
 	FLOW f2 = FLOW(flow_size);
 	for(int i = 0; i < flow_size; i += 1){
-		int t = rand() % 1000000;
-		f2.flow_element[i] = t;
-		cnt2[t] += 1;
+		int t = zipf(1, domain_size);
+		int tt = zipf(1, domain_size);
+		if(i % 600 == 0){
+			rand_val(7);
+		}
+		f1.flow_element[i] = t;
+		cnt1[t] += 1;
+		f2.flow_element[i] = tt;
+		cnt2[tt] += 1;
 	}
+
 	cout << "end" << endl;
 
-	domain d;
+	domain d(domain_size);
 
 	skim_sketch ss(f1, f2, d);
 
