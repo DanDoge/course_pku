@@ -12,8 +12,8 @@
 #include "hashtable.h"
 using namespace std;
 
-#define s1 = 64;
-#define s2 = 128;
+#define s1 64
+#define s2 128
 
 class skim_sketch{
 public:
@@ -31,6 +31,15 @@ private:
     void skim_dense(Hashtable & h, int & flow_length, std::vector<int> & e);
     int est_sub_join_size(std::vector<int> & e, Hashtable & h);
 };
+
+int hash_template(int seed, int n) {
+	uint64_t *res = (uint64_t* )malloc(sizeof(uint64_t) * 2);
+	MurmurHash3_x64_128(&n, 1, seed, res);
+
+	int ans = (*res) & (s2 - 1);
+	free(res);
+	return ans;
+}
 
 void get_hash_table(std::vector<int> & f, Hashtable & h){
     for(int i = 0; i < f.size(); i += 1){
@@ -57,15 +66,6 @@ int median(vector<int> p, int length){
     vector<int> pv(p);
     nth_element(pv.begin(), pv.begin() + pv.size() / 2, pv.end());
     return pv[length / 2];
-}
-
-int hash_template(int seed, int n) {
-	uint64_t *res = (uint64_t* )malloc(sizeof(uint64_t) * 2);
-	MurmurHash3_x64_128(&n, 1, seed, res);
-
-	int ans = (*res) & (s2 - 1);
-	free(res);
-	return ans;
 }
 
 #endif // STREAMINGLIB_SKIM_SKETCH_H
