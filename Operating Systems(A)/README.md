@@ -1,2 +1,1 @@
-temporarily archived because i dropped this course,
-and i'll update it when i choose it next time.
+taken in HKUST, refer to DanDoge/course_hkust for notes and projects
