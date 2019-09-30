@@ -1,0 +1,216 @@
+\documentclass{article}
+
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+\usetikzlibrary{automata,positioning}
+
+%
+% Basic Document Settings
+%
+
+\topmargin=-0.45in
+\evensidemargin=0in
+\oddsidemargin=0in
+\textwidth=6.5in
+\textheight=9.0in
+\headsep=0.25in
+
+\linespread{1.1}
+
+\pagestyle{fancy}
+\lhead{\hmwkAuthorName}
+\chead{\hmwkClass\ : \hmwkTitle}
+\rhead{\firstxmark}
+\lfoot{\lastxmark}
+\cfoot{\thepage}
+
+\renewcommand\headrulewidth{0.4pt}
+\renewcommand\footrulewidth{0.4pt}
+
+\setlength\parindent{0pt}
+
+%
+% Create Problem Sections
+%
+
+\newcommand{\enterProblemHeader}[1]{
+    \nobreak\extramarks{}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+}
+
+\newcommand{\exitProblemHeader}[1]{
+    \nobreak\extramarks{Problem \arabic{#1} (continued)}{Problem \arabic{#1} continued on next page\ldots}\nobreak{}
+    \stepcounter{#1}
+    \nobreak\extramarks{Problem \arabic{#1}}{}\nobreak{}
+}
+
+\setcounter{secnumdepth}{0}
+\newcounter{partCounter}
+\newcounter{homeworkProblemCounter}
+\setcounter{homeworkProblemCounter}{1}
+\nobreak\extramarks{Problem \arabic{homeworkProblemCounter}}{}\nobreak{}
+
+%
+% Homework Problem Environment
+%
+% This environment takes an optional argument. When given, it will adjust the
+% problem counter. This is useful for when the problems given for your
+% assignment aren't sequential. See the last 3 problems of this template for an
+% example.
+%
+\newenvironment{homeworkProblem}[1][-1]{
+    \ifnum#1>0
+        \setcounter{homeworkProblemCounter}{#1}
+    \fi
+    \section{Problem \arabic{homeworkProblemCounter}}
+    \setcounter{partCounter}{1}
+    \enterProblemHeader{homeworkProblemCounter}
+}{
+    \exitProblemHeader{homeworkProblemCounter}
+}
+
+%
+% Homework Details
+%   - Title
+%   - Due date
+%   - Class
+%   - Section/Time
+%   - Instructor
+%   - Author
+%
+
+\newcommand{\hmwkTitle}{Homework\ \#1}
+\newcommand{\hmwkDueDate}{Oct. 7, 2019}
+\newcommand{\hmwkClass}{Modern Computational Statistics}
+\newcommand{\hmwkClassTime}{ }
+\newcommand{\hmwkClassInstructor}{}
+\newcommand{\hmwkAuthorName}{\textbf{Huang Daoji}}
+
+%
+% Title Page
+%
+
+\title{
+    \vspace{2in}
+    \textmd{\textbf{\hmwkClass:\ \hmwkTitle}}\\
+    \normalsize\vspace{0.1in}\small{Due\ on\ \hmwkDueDate\ at 3:10pm}\\
+    \vspace{0.1in}\large{\textit{\hmwkClassInstructor\ \hmwkClassTime}}
+    \vspace{3in}
+}
+
+\author{\hmwkAuthorName}
+\date{}
+
+\renewcommand{\part}[1]{\textbf{\large Part \Alph{partCounter}}\stepcounter{partCounter}\\}
+
+%
+% Various Helper Commands
+%
+
+% Useful for algorithms
+\newcommand{\alg}[1]{\textsc{\bfseries \footnotesize #1}}
+
+% For derivatives
+\newcommand{\deriv}[1]{\frac{\mathrm{d}}{\mathrm{d}x} (#1)}
+
+% For partial derivatives
+\newcommand{\pderiv}[2]{\frac{\partial}{\partial #1} (#2)}
+
+% Integral dx
+\newcommand{\dx}{\mathrm{d}x}
+
+% Alias for the Solution section header
+\newcommand{\solution}{\textbf{\large Solution}}
+
+% Probability commands: Expectation, Variance, Covariance, Bias
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\Bias}{\mathrm{Bias}}
+
+\begin{document}
+
+%\maketitle
+
+\pagebreak
+
+\begin{homeworkProblem}
+    \textbf{(1)} \\
+    Solving the maximum entropy distribution with constraints is essentially
+    \begin{equation}
+        \begin{aligned}
+            \max & \int p(x) \ln p(x) \text{d}x \\
+            \text{s.t.} & \int p(x) \text{d}x = 1 \\
+            & \int xp(x) \text{d}x = 0 \\
+            & \int x^{2} p(x) \text{d}x = 1 \\
+        \end{aligned}
+    \end{equation}
+
+
+    \textbf{Lemma}(functional derivative): We first show how to take the derivative of a function. Suppose we have
+    \begin{equation}
+        F(p(x)) = \int p(x)f(x) \text{d}x.
+    \end{equation}
+    By substituting $p(x)$ with $p(x) + \epsilon \eta(x)$, we have
+    \begin{equation}
+        F(p(x) + \epsilon \eta(x)) = \int p(x)f(x) \text{d}x + \epsilon \int \eta(x)f(x) \text{d}x,
+    \end{equation}
+    and thus,
+    \begin{equation}
+        \frac{\partial F}{\partial p(x)} = f(x).
+    \end{equation}
+    Similarly, we have
+    \begin{equation}
+        \begin{aligned}
+            G(p(x)) &= \int p(x) \ln p(x) \text{d}x \\
+            \frac{\partial G}{\partial p(x)} &= \ln p(x) + 1.
+        \end{aligned}
+    \end{equation}
+
+    From the fact that the above optimization question is a concave maxmization one, we construct its Lagrangian function and set its derivative w.r.t. $\lambda$ to zero.
+    \begin{equation}
+        \begin{aligned}
+            L(x, \lambda) &= \int p(x) \ln p(x) \text{d}x - \lambda_1(\int p(x) \text{d}x - 1) - \lambda_2\int xp(x) \text{d}x - \lambda_3(\int x^{2} p(x) \text{d}x - 1) \\
+            \frac{\partial L}{\partial \lambda} &= \ln p(x) + 1 - \lambda_1 - \lambda_2 x - \lambda_3 x^{2} \\
+            &= 0.
+        \end{aligned}
+    \end{equation}
+    We obtain
+    \begin{equation}
+        p(x) = \text{exp} (-1 + \lambda_1 + \lambda_2 x + \lambda_3 x^{2})
+    \end{equation}
+    To solve $\lambda$, we substitute the above $p(x)$ into constraints
+    \begin{equation}
+        \begin{aligned}
+            \int \text{exp}(-1 + \lambda_1 + \lambda_2 x + \lambda_3 x^{2}) \text{d} x &= 1 \\
+            \int x \text{exp}(-1 + \lambda_1 + \lambda_2 x + \lambda_3 x^{2}) \text{d} x &= 0 \\
+            \int x^{2} \text{exp}(-1 + \lambda_1 + \lambda_2 x + \lambda_3 x^{2}) \text{d} x &= 1 \\
+        \end{aligned}
+    \end{equation}
+    We notice that $\lambda = (1 - \frac{1}{2}\ln(2\pi\sigma^{2}),\ 0,\  \frac{1}{2\sigma^{2}})$ from $N(0, 1)$ does satisfy above equations(and thus no need to check conditions for Lagrangian method). \\
+    This shows that $X ~ N(0, 1)$ is the maximum entropy distribution under such constraints.
+
+    \textbf{(2)} \\
+    Similar to \textbf{(1)}, we have
+    \begin{equation}
+        \begin{aligned}
+            p(x) &= \text{exp}(-1 + \sum_{0}^{n}\lambda_i x^{i}) \\
+            \text{s.t.} \int p(x) \text{d}x &= 1 \\
+            \int x^{i}p(x) \text{d}x &= m_{i}\ \ \ \text{for} 1 \le i \le n \\
+        \end{aligned}
+    \end{equation}
+    Notice that in some cases, such distribution does not exist and the maximum entropy only serves as an upper bound.
+
+\end{homeworkProblem}
+
+\pagebreak
+
+
+\end{document}

@@ -9,7 +9,8 @@ def gen_label(X):
 
 def IRLS(X, y):
     weight = np.zeros(shape=(2))
-    bias = np.log(np.mean(y) / (1.0 - np.mean(y)))
+    # bias = np.log(np.mean(y) / (1.0 - np.mean(y)))
+    bias = 0
     #print(bias)
     threshold = 1e-6
     change = 1e6
