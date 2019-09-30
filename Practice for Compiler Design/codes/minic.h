@@ -6,12 +6,13 @@ typedef struct node{
     int node_type;
     int stmt_type;
     int exp_type;
+    int op_type;
+    int val_type;
     char *name;
     int start_val;
     int var_idx_eeyore;
     int num_param;
     int arr_size;
-    int op_type;
     int val_num;
 }node;
 
@@ -22,3 +23,9 @@ typedef struct var_table{
     int var_idx_eeyore;
     int type;
 }var_table[1024];
+
+int var_table_idx = 0;
+
+int varcnt_t = 0;
+int varcnt_p = 0;
+int lblcnt = 0;

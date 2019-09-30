@@ -7,7 +7,14 @@
 
 extern void yyerror(char* message); // defined in minic.l
 
+node* new_node();
+
 %}
+
+%union {
+    int intval;
+    char* tokenname;
+}
 
 %token IF ELSE WHILE INT MAIN RETURN
 %token ADD SUB MUL DIV MOD
@@ -23,10 +30,11 @@ extern void yyerror(char* message); // defined in minic.l
 %left ADD SUB
 %left MUL DIV MOD
 %right NOT
+%nonassoc UMINUS
 
 %%
 
-final : decl main_func
+goal : decl main_func
         {
             node* tmp = $1;
             if(tmp){
@@ -42,7 +50,7 @@ final : decl main_func
         }
         ;
 
-decl :  decl decl_var
+decl :  decl def_var
         {
             node* tmp = $1;
             if(tmp){
@@ -97,7 +105,7 @@ main_func : INT MAIN OPEN_ROUND_BRAC CLOSE_ROUND_BRAC OPEN_CURLY_BRAC stmt_list 
             }
             ;
 
-decl_var :  INT id_with_name SEMICOLON
+def_var :  INT id_with_name SEMICOLON
             {
                 $$ = new_node();
                 $$->node_type = NODE_STMT;
@@ -157,7 +165,7 @@ num_with_val :  NUM
                 }
                 ;
 
-param_list :    decl_var_wo_colon param_left
+param_list :    decl_var param_left
                 {
                     $$ = $1;
                     $$->next = $2;
@@ -173,7 +181,7 @@ param_list :    decl_var_wo_colon param_left
                 }
                 ;
 
-param_left :    param_left COLON decl_var_wo_colon
+param_left :    param_left COLON decl_var
                 {
                     node* tmp = $1;
                     if(tmp){
@@ -194,19 +202,283 @@ param_left :    param_left COLON decl_var_wo_colon
                 }
                 ;
 
-decl_var_wo_colon : INT id_with_name
-                    {
-                        $$ = new_node();
-                        $$->node_type = NODE_STMT;
-                        $$->stmt_type = STMT_DECL_VAR;
-                        $$->name = $2->name;
+decl_var :      INT id_with_name
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_DECL_VAR;
+                    $$->name = $2->name;
+                }
+                | INT id_with_name OPEN_SQUARE_BRAC num_with_val CLOSE_SQUARE_BRAC
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_DECL_VAR;
+                    $$->name = $2->name;
+                    $$->arr_size = ($4->val_num) << 2;
+                }
+                ;
+
+stmt_list:      stmt_list stmt
+                {
+                    node* tmp = $1;
+                    if(tmp){
+                        while(tmp->next){
+                            t = t->next;
+                        }
+                        t->next = $2;
+                        $$ = $1;
+                    }else{
+                        $$ = $2;
                     }
-                    | INT id_with_name OPEN_SQUARE_BRAC num_with_val CLOSE_SQUARE_BRAC
-                    {
-                        $$ = new_node();
-                        $$->node_type = NODE_STMT;
-                        $$->stmt_type = STMT_DECL_VAR;
-                        $$->name = $2->name;
-                        $$->arr_size = ($4->val_num) << 2;
+                }
+                |
+                {
+                    $$ = NULL;
+                }
+                ;
+
+stmt :           OPEN_CURLY_BRAC stmt_list CLOSE_CURLY_BRAC
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_NA;
+                    $$->children[0] = $2;
+                }
+                | IF OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC stmt
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_IF;
+                    $$->children[0] = $3;
+                    $$->children[1] = $5;
+                }
+                | IF OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC stmt ELSE stmt
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_IFELSE;
+                    $$->children[0] = $3;
+                    $$->children[1] = $5;
+                    $$->children[2] = $7;
+                }
+                | WHILE OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC stmt
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_WHILE;
+                    $$->children[0] = $3;
+                    $$->children[1] = $5;
+                }
+                | id_with_name ASN exp SEMICOLON
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_IDASN;
+                    $$->name = $1->name;
+                    $$->children[0] = $3;
+                }
+                | id_with_name OPEN_SQUARE_BRAC exp CLOSE_SQUARE_BRAC ASN exp SEMICOLON
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_ARRASN;
+                    $$->name = $1->name;
+                    $$->children[0] = $3;
+                    $$->children[1] = $6;
+                }
+                | def_var
+                {
+                    $$ = $1;
+                }
+                | RETURN exp SEMICOLON
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_RETURN;
+                    $$->children[0] = $2;
+                }
+
+exp :           exp ADD exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_ADD;
+                    $$->val_type = VAL_INT;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp SUB exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_SUB;
+                    $$->val_type = VAL_INT;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp MUL exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_MUL;
+                    $$->val_type = VAL_INT;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp DIV exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_DIV;
+                    $$->val_type = VAL_INT;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp MOD exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_MOD;
+                    $$->val_type = VAL_INT;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp AND exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_AND;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp OR exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_OR;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp LE exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_LE;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp GE exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_GE;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp EQ exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_EQ;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp NEQ exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_BINOP;
+                    $$->op_type = OP_NEQ;
+                    $$->val_type = VAL_BOOL;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | exp OPEN_SQUARE_BRAC exp CLOSE_SQUARE_BRAC
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_ARR;
+                    $$->children[0] = $1;
+                    $$->children[1] = $3;
+                }
+                | num_with_val
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_NUM;
+                    $$->val_num = $1->val_num;
+                }
+                | id_with_name
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_ID;
+                    $$->name = $1->name;
+                }
+                | SUB exp   %prec UMINUS
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_UNIOP;
+                    $$->op_type = OP_UMINUS;
+                    $$->children[0] = $2;
+                }
+                | id_with_name OPEN_ROUND_BRAC id_list CLOSE_ROUND_BRAC
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_FUNCALL;
+                    $$->children[0] = $3;
+                }
+                | OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC
+                {
+                    $$ = $2;
+                }
+                ;
+
+id_list :       id_with_name id_left
+                {
+                    $$ = new_node();
+                    $$->name = $1->name;
+                    $$->next = $2;
+                }
+                |
+                {
+                    $$ = NULL;
+                }
+                ;
+
+id_left :       id_left COLON id_with_name
+                {
+                    node* tmp = $1;
+                    if(tmp){
+                        while(tmp->next){
+                            tmp = tmp->next;
+                        }
+                        tmp->next = $3;
+                        $$ = $1;
+                    }else{
+                        $$ = $3;
                     }
-                    ;
+                }
+                |
+                {
+                    $$ = NULL;
+                }
+                ;
