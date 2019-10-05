@@ -46,7 +46,7 @@ def get_batch(X, Y_gt, start_ele, batch_size):
     return X_batch, Y_gt_batch
 
 # batch size = n
-def gd(X, Y_gt, lr_init, d):
+def gd(X, Y_gt, lr_init, d, beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -57,15 +57,15 @@ def gd(X, Y_gt, lr_init, d):
         lr = lr_scheduler(lr_init, step, 1)
         beta += lr * grad_beta
         step += 1
-        loss_this = np.sum(np.absolute(beta_0 - beta))
+        loss_this = np.sum(np.absolute(beta_est - beta))
         loss.append(loss_this)
         if loss_this < 1e-3 or step > 1e4:
-            print("vanilla GD ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("vanilla GD ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start, "total steps:", step)
             break;
     return loss
             
-def nag(X, Y_gt, lr_init, d):
+def nag(X, Y_gt, lr_init, d, beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -79,15 +79,15 @@ def nag(X, Y_gt, lr_init, d):
         beta_tmp = beta
         beta = y_beta + lr * grad_beta
         step += 1
-        loss_this = np.sum(np.absolute(beta_0 - beta))
+        loss_this = np.sum(np.absolute(beta_est - beta))
         loss.append(loss_this)
         if loss_this < 1e-3 or step > 1e4:
-            print("NAG ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("NAG ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start, "total steps:", step)
             break;
-    return loss
+    return loss, beta
             
-def adagrad(X, Y_gt, lr_init, d, eps, batch_size):
+def adagrad(X, Y_gt, lr_init, d, eps, batch_size, beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -102,14 +102,14 @@ def adagrad(X, Y_gt, lr_init, d, eps, batch_size):
         lr =  lr_scheduler(lr_init, step, 0)
         beta += lr * np.multiply((1.0 / np.sqrt(g_beta + eps)), grad_beta)
         step += 1
-        loss.append(np.sum(np.absolute(beta_0 - beta)))
+        loss.append(np.sum(np.absolute(beta_est - beta)))
         if step > 1e5:
-            print("AdaGrad ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("AdaGrad ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start)
             break; 
     return loss
             
-def rmsprop(X, Y_gt, lr_init, d, eps, batch_size):
+def rmsprop(X, Y_gt, lr_init, d, eps, batch_size,beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -124,14 +124,14 @@ def rmsprop(X, Y_gt, lr_init, d, eps, batch_size):
         lr =  lr_scheduler(lr_init, step, 0)
         beta += lr * np.multiply((1.0 / np.sqrt(g_beta + eps)), grad_beta)
         step += 1
-        loss.append(np.sum(np.absolute(beta_0 - beta)))
+        loss.append(np.sum(np.absolute(beta_est - beta)))
         if step > 1e5:
-            print("RMSprop ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("RMSprop ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start)
             break;
     return loss
             
-def sgd(X, Y_gt, lr_init, d, batch_size):
+def sgd(X, Y_gt, lr_init, d, batch_size, beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -144,14 +144,14 @@ def sgd(X, Y_gt, lr_init, d, batch_size):
         lr =  lr_scheduler(lr_init, step, 1)
         beta += lr * grad_beta
         step += 1
-        loss.append(np.sum(np.absolute(beta_0 - beta)))
+        loss.append(np.sum(np.absolute(beta_est - beta)))
         if step > 1e5:
-            print("SGD ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("SGD ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start)
             break;
     return loss
             
-def adam(X, Y_gt, lr_init, d, b_1, b_2, eps, batch_size):
+def adam(X, Y_gt, lr_init, d, b_1, b_2, eps, batch_size, beta_est):
     start = time.time()
     loss = []
     beta = np.zeros(shape=d)
@@ -168,9 +168,9 @@ def adam(X, Y_gt, lr_init, d, b_1, b_2, eps, batch_size):
         v_beta = b_2 * v_beta + (1 - b_2) * np.square(grad_beta)
         beta += lr * (m_beta / (1.0 - np.power(b_1, step))) / np.sqrt(eps + v_beta / (1.0 - np.power(b_2, step)))
         step += 1
-        loss.append(np.sum(np.absolute(beta_0 - beta)))
+        loss.append(np.sum(np.absolute(beta_est - beta)))
         if step > 1e5:
-            print("Adam ended with L_1 diff as: ", np.sum(np.absolute(beta_0 - beta)))
+            print("Adam ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start)
             break;
     return loss
