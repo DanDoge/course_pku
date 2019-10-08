@@ -64,7 +64,7 @@ def gd(X, Y_gt, lr_init, d, beta_est):
             print("Total time:", time.time() - start, "total steps:", step)
             break;
     return loss
-            
+
 def nag(X, Y_gt, lr_init, d, beta_est):
     start = time.time()
     loss = []
@@ -86,7 +86,7 @@ def nag(X, Y_gt, lr_init, d, beta_est):
             print("Total time:", time.time() - start, "total steps:", step)
             break;
     return loss, beta
-            
+
 def adagrad(X, Y_gt, lr_init, d, eps, batch_size, beta_est):
     start = time.time()
     loss = []
@@ -106,9 +106,9 @@ def adagrad(X, Y_gt, lr_init, d, eps, batch_size, beta_est):
         if step > 1e5:
             print("AdaGrad ended with L_1 diff as: ", np.sum(np.absolute(beta_est - beta)))
             print("Total time:", time.time() - start)
-            break; 
+            break;
     return loss
-            
+
 def rmsprop(X, Y_gt, lr_init, d, eps, batch_size,beta_est):
     start = time.time()
     loss = []
@@ -130,7 +130,7 @@ def rmsprop(X, Y_gt, lr_init, d, eps, batch_size,beta_est):
             print("Total time:", time.time() - start)
             break;
     return loss
-            
+
 def sgd(X, Y_gt, lr_init, d, batch_size, beta_est):
     start = time.time()
     loss = []
@@ -150,7 +150,7 @@ def sgd(X, Y_gt, lr_init, d, batch_size, beta_est):
             print("Total time:", time.time() - start)
             break;
     return loss
-            
+
 def adam(X, Y_gt, lr_init, d, b_1, b_2, eps, batch_size, beta_est):
     start = time.time()
     loss = []
