@@ -5,16 +5,20 @@
 #include <string.h>
 #include "minic.h"
 
+#define YYSTYPE node *
+
 extern void yyerror(char* message); // defined in minic.l
 
 node* new_node();
 
-%}
+char* cpy_string(char* s);
 
-%union {
-    int intval;
-    char* tokenname;
-}
+void print_tree(node* root);
+
+extern char tokenString[10010];
+extern int intval;
+
+%}
 
 %token IF ELSE WHILE INT MAIN RETURN
 %token ADD SUB MUL DIV MOD
@@ -99,7 +103,7 @@ main_func : INT MAIN OPEN_ROUND_BRAC CLOSE_ROUND_BRAC OPEN_CURLY_BRAC stmt_list 
             {
                 $$ = new_node();
                 $$->name = "main";
-                $$->type = DEF_FUNC;
+                $$->node_type = NODE_DEF_FUN;
                 $$->children[0] = $6;
                 $$->num_param = 0;
             }
@@ -112,13 +116,13 @@ def_var :  INT id_with_name SEMICOLON
                 $$->stmt_type = STMT_DECL_VAR;
                 $$->name = $2->name;
             }
-            | INT id_with_name OPEN_SQUARE_BRAC num_with_val CLOSE_SQUARE_BRAC SEMICOLON
+            | INT id_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC SEMICOLON
             {
                 $$ = new_node();
                 $$->node_type = NODE_STMT;
                 $$->stmt_type = STMT_DECL_VAR;
                 $$->name = $2->name;
-                $$->arr_size = ($4->val_num) << 2;
+                $$->arr_size = (intval) << 2;
             }
             ;
 
@@ -154,14 +158,7 @@ def_fun :  INT id_with_name OPEN_ROUND_BRAC param_list CLOSE_ROUND_BRAC OPEN_CUR
 id_with_name :  ID
                 {
                     $$ = new_node();
-                    $$->name = yylval.tokenname; // may need to deep copy a string
-                }
-                ;
-
-num_with_val :  NUM
-                {
-                    $$ = new_node();
-                    $$->name = yylval.intval;
+                    $$->name = cpy_string(tokenString); // may need to deep copy a string
                 }
                 ;
 
@@ -209,7 +206,7 @@ decl_var :      INT id_with_name
                     $$->stmt_type = STMT_DECL_VAR;
                     $$->name = $2->name;
                 }
-                | INT id_with_name OPEN_SQUARE_BRAC num_with_val CLOSE_SQUARE_BRAC
+                | INT id_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC
                 {
                     $$ = new_node();
                     $$->node_type = NODE_STMT;
@@ -224,9 +221,9 @@ stmt_list:      stmt_list stmt
                     node* tmp = $1;
                     if(tmp){
                         while(tmp->next){
-                            t = t->next;
+                            tmp = tmp->next;
                         }
-                        t->next = $2;
+                        tmp->next = $2;
                         $$ = $1;
                     }else{
                         $$ = $2;
@@ -417,12 +414,12 @@ exp :           exp ADD exp
                     $$->children[0] = $1;
                     $$->children[1] = $3;
                 }
-                | num_with_val
+                | NUM
                 {
                     $$ = new_node();
                     $$->node_type = NODE_EXP;
                     $$->exp_type = EXP_NUM;
-                    $$->val_num = $1->val_num;
+                    $$->val_num = intval;
                 }
                 | id_with_name
                 {
@@ -482,3 +479,61 @@ id_left :       id_left COLON id_with_name
                     $$ = NULL;
                 }
                 ;
+
+%%
+
+int main(int argc, const char* argv[]){
+    yyparse();
+    print_tree(root);
+    return 0;
+}
+
+node* new_node(){
+    node* tmp = (node*)malloc(sizeof(node));
+    for(int i = 0; i < 5; i += 1){
+        tmp->children[i] = NULL;
+    }
+    tmp->name = NULL;
+    tmp->next = NULL;
+    return tmp;
+}
+
+char* cpy_string(char* s){
+    if(s == NULL){
+        return NULL;
+    }
+    int length = strlen(s) + 1;
+    char* tmp = malloc(length);
+    if(tmp == NULL){
+        printf("Out of mem when copying string: %s\n", s);
+    }else{
+        strcpy(tmp, s);
+    }
+    return tmp;
+}
+
+void print_tree(node* root){
+    if(name){
+        printf("visit node with name: %s\n", name);
+    }
+    switch(root->node_type){
+        case NODE_EXP:{
+            printf("node type: expression\n");
+            printf("expression type: %d\n", root->stmt_type);
+
+            break;
+        }
+        case NODE_STMT:{
+            printf("node type: statement\n");
+            break;
+        }
+        case NODE_DEF_FUN:{
+            printf("node type: function definition\n");
+            break;
+        }
+        case NODE_DECL_DUN:{
+            printf("node type: function declaration\n");
+            break;
+        }
+    }
+}

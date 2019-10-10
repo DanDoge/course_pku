@@ -2,8 +2,11 @@
 
 %{
 #include <stdio.h>
-#include <string>
+#include <string.h>
 #include"minic.tab.h" // bison on my machine generates "minic.tab.h" automatically
+
+char tokenString[10010];
+int intval;
 %}
 
 /* regex definition begins here */
@@ -11,14 +14,13 @@
 number      [0-9]+
 identifier  [a-zA-Z_][a-zA-Z0-9_]*
 ignore      [ \t\n]+
-comments    "/*"([^*]|"*"+[^"/"])*"*"+"/" /* for multi-line comments */
-comment     "//"[^\n]*                    /* for single line comments */
+comments    "/*"([^*]|"*"+[^"/"])*"*"+"/"
+comment     "//"[^\n]*
 
 /* regex definition ends here */
 
 %%
 
-/* reserved words begins here */
 
 "if"        {return IF;}
 "else"      {return ELSE;}
@@ -27,9 +29,6 @@ comment     "//"[^\n]*                    /* for single line comments */
 "main"      {return MAIN;}
 "return"    {return RETURN;}
 
-/* reserved words ends here */
-
-/* operators begins here */
 
 "+"         {return ADD;}
 "-"         {return SUB;}
@@ -47,9 +46,7 @@ comment     "//"[^\n]*                    /* for single line comments */
 "=="        {return EQ;}
 "!="        {return NEQ;}
 
-/* operators ends here */
 
-/* punctuations begins here */
 
 ";"         {return SEMICOLON;}
 ","         {return COLON;}
@@ -60,17 +57,14 @@ comment     "//"[^\n]*                    /* for single line comments */
 "("         {return OPEN_ROUND_BRAC;}
 ")"         {return CLOSE_ROUND_BRAC;}
 
-/* punctuations ends here */
 
-/* lexical analysis begins here */
 
-{number}        {yylval.intval = atoi(yytext); return NUM;}
-{identifier}    {strcpy(yylval.tokenname, yytext); return ID;}
+{number}        {intval = atoi(yytext); return NUM;}
+{identifier}    {strcpy(tokenString, yytext); return ID;}
 {comments}      {}
 {comment}       {}
 {ignore}        {}
 
-/* lexical analysis ends here */
 
 %%
 
