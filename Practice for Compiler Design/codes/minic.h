@@ -2,11 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum{NODE_EXP, NODE_STMT, NODE_DEF_FUN, NODE_DECL_DUN} Node_Type;
-typedef enum{STMT_NA, STMT_IF, STMT_IDASN, STMT_WHILE, STMT_IFELSE, STMT_ARRASN, STMT_RETURN, STMT_DECL_VAR} Stmt_Type;
+/* notes on how to compile
+bison -d fb3-1.y
+flex -ofb3-1.lex.c fb3-1.l
+cc -o $@ fb3-1.tab.c fb3-1.lex.c fb3-1funcs.c
+*/
+
+typedef enum{NODE_EXP, NODE_STMT, NODE_DEF_FUN, NODE_DECL_FUN} Node_Type;
+typedef enum{STMT_NA, STMT_IF, STMT_IDASN, STMT_WHILE, STMT_IFELSE, STMT_ARRASN, STMT_RETURN, STMT_DECL_VAR, STMT_DEF_VAR} Stmt_Type;
 typedef enum{EXP_ID, EXP_ARR, EXP_NUM, EXP_BINOP, EXP_UNIOP, EXP_FUNCALL} Exp_Type;
 typedef enum{VAL_INT, VAL_BOOL} Val_Type;
-typedef enum{OP_GE, OP_LE, OP_EQ, OP_OR, OP_AND, OP_DIV, OP_ADD, OP_SUB, OP_MOD, OP_MUL, OP_NEQ, OP_UMINUS} Op_Type;
+typedef enum{OP_GE, OP_LE, OP_EQ, OP_OR, OP_AND, OP_NOT, OP_DIV, OP_ADD, OP_SUB, OP_MOD, OP_MUL, OP_NEQ, OP_UMINUS} Op_Type;
+typedef enum{VAR_FUNC, VAR_VART, VAR_VARP} Var_Type;
 
 typedef struct Node{
     struct Node* children[5];
@@ -19,6 +26,7 @@ typedef struct Node{
     char *name;
     int start_val;
     int var_idx_eeyore;
+    int lbl_idx_eeyore;
     int num_param;
     int arr_size;
     int val_num;
@@ -29,7 +37,8 @@ node* root;
 typedef struct var_table{
     char* name;
     int var_idx_eeyore;
-    int type;
+    int num_param;
+    Var_Type var_type;
 }var_table[1024];
 
 int var_table_idx = 0;

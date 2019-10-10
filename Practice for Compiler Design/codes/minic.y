@@ -113,14 +113,15 @@ def_var :  INT id_with_name SEMICOLON
             {
                 $$ = new_node();
                 $$->node_type = NODE_STMT;
-                $$->stmt_type = STMT_DECL_VAR;
+                $$->stmt_type = STMT_DEF_VAR;
                 $$->name = $2->name;
+                $$->arr_size = 0;
             }
             | INT id_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC SEMICOLON
             {
                 $$ = new_node();
                 $$->node_type = NODE_STMT;
-                $$->stmt_type = STMT_DECL_VAR;
+                $$->stmt_type = STMT_DEF_VAR;
                 $$->name = $2->name;
                 $$->arr_size = (intval) << 2;
             }
@@ -129,7 +130,7 @@ def_var :  INT id_with_name SEMICOLON
 decl_fun :  INT id_with_name OPEN_ROUND_BRAC param_list CLOSE_ROUND_BRAC SEMICOLON
             {
                 $$ = new_node();
-                $$->node_type = NODE_DECL_DUN;
+                $$->node_type = NODE_DECL_FUN;
                 $$->name = $2->name;
                 $$->children[0] = $4;
                 if($4){
@@ -428,6 +429,14 @@ exp :           exp ADD exp
                     $$->exp_type = EXP_ID;
                     $$->name = $1->name;
                 }
+                | NOT exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_EXP;
+                    $$->exp_type = EXP_UNIOP;
+                    $$->op_type = OP_NOT;
+                    $$->children[0] = $2;
+                }
                 | SUB exp   %prec UMINUS
                 {
                     $$ = new_node();
@@ -440,6 +449,7 @@ exp :           exp ADD exp
                 {
                     $$ = new_node();
                     $$->node_type = NODE_EXP;
+                    $$->name = $1->name;
                     $$->exp_type = EXP_FUNCALL;
                     $$->children[0] = $3;
                 }
@@ -513,27 +523,189 @@ char* cpy_string(char* s){
 }
 
 void print_tree(node* root){
-    if(name){
-        printf("visit node with name: %s\n", name);
+    if(root == NULL){
+        return ;
+    }
+    if(root->name){
+        printf("visit node with name: %s\n", root->name);
     }
     switch(root->node_type){
         case NODE_EXP:{
             printf("node type: expression\n");
-            printf("expression type: %d\n", root->stmt_type);
-
+            printf("expression type: %d\n", root->exp_type);
+            for(int i = 0; i < 5; i += 1){
+                print_tree(root->children[i]);
+            }
+            print_tree(root->next);
             break;
         }
         case NODE_STMT:{
             printf("node type: statement\n");
+            printf("statement type: %d\n", root->stmt_type);
+            for(int i = 0; i< 5; i += 1){
+                print_tree(root->children[i]);
+            }
+            print_tree(root->next);
             break;
         }
         case NODE_DEF_FUN:{
             printf("node type: function definition\n");
+            for(int i = 0; i< 5; i += 1){
+                print_tree(root->children[i]);
+            }
+            print_tree(root->next);
             break;
         }
-        case NODE_DECL_DUN:{
+        case NODE_DECL_FUN:{
             printf("node type: function declaration\n");
+            for(int i = 0; i< 5; i += 1){
+                print_tree(root->children[i]);
+            }
+            print_tree(root->next);
             break;
         }
+    }
+}
+
+void translation(node* root){
+    if(root == NULL){
+        return ;
+    }
+    if(root->node_type == NODE_DECL_FUN){
+        var_table[var_table_idx].name = root->name;
+        var_table[var_table_idx].num_param = root->num_param;
+        var_table[var_table_idx].var_type = VAR_FUNC;
+        var_table_idx += 1;
+        translation(root->next);
+    }
+    if(root->node_type == NODE_DEF_FUN){
+        int in_var_table = 0;
+        for(int i = 0; i < var_table_idx; i += 1){
+            if(strcmp(var_table[i].name, root->name) == 0){
+                in_var_table = 1;
+                break;
+            }
+        }
+        if(!in_var_table){
+            var_table[var_table_idx].name = root->name;
+            var_table[var_table_idx].num_param = root->num_param;
+            var_table[var_table_idx].var_type = VAR_FUNC;
+            var_table_idx += 1;
+        }
+        int idx_without_param = var_table_idx;
+        printf("f_%s[%d]\n", root->name, root->num_param);
+        node* param = root->children[1];
+        for(int i = 0; i < root->num_param; i += 1){
+            var_table[var_table_idx].name = param->name;
+            var_table[var_table_idx].var_idx_eeyore = i;
+            var_table[var_table_idx].var_type = VAR_VARP;
+            var_table_idx += 1;
+            param = param->next;
+        }
+        translation(root->children[0]);
+        printf("end f_%s\n", root->name);
+        var_table_idx = idx_without_param;
+        translation(root->next);
+    }
+    if(root->node_type == NODE_STMT){
+        if(root->stmt_type == STMT_DEF_VAR){
+            /* a simplest assumption: define a var no more than once*/
+            for(int i = 0; i < var_table_idx; i += 1){
+                if(strcmp(var_table[i], root->name) == 0){
+                    printf("error: var %s already defined, exit", root->name);
+                    exit(1);
+                }
+            }
+            root->var_idx_eeyore = varcnt_t;
+            var_table[var_table_idx].name = root->name;
+            var_table[var_table_idx].var_idx_eeyore = varcnt_t;
+            var_table[var_table_idx].var_type = VAR_VART;
+            if(root->arr_size == 0){
+                printf("var T%d\n", varcnt_t);
+            }else{
+                printf("var %d T%d\n", root->arr_size, varcnt_t);
+            }
+            varcnt_t += 1;
+            var_table_idx += 1;
+        }
+        if(root->stmt_type == STMT_IF){
+            translation(root->children[0]);
+            root->lbl_idx_eeyore = lblcnt;
+            lblcnt += 1;
+            printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore);
+            translation(root->children[1]);
+            printf("l%d:\n", root->lbl_idx_eeyore);
+        }
+        if(root->stmt_type == STMT_IFELSE){
+            translation(root->children[0]);
+            root->lbl_idx_eeyore = lblcnt;
+            lblcnt += 1;
+            printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore);
+            translation(root->children[1]);
+            printf("goto l%d\n", lblcnt);
+            lblcnt += 1;
+            printf("l%d:\n", root->lbl_idx_eeyore);
+            translation(root->children[2]);
+            printf("l%d:\n", root->lbl_idx_eeyore + 1);
+        }
+        if(root->stmt_type == STMT_WHILE){
+            root->lbl_idx_eeyore = lblcnt;
+            lblcnt += 1;
+            printf("l%d:\n", root->lbl_idx_eeyore);
+            translation(root->children[0]);
+            printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore + 1);
+            translation(root->children[1]);
+            printf("goto l%d\n", root->lbl_idx_eeyore);
+            printf("l%d\n", lblcnt);
+            lblcnt += 1;
+        }
+        if(root->stmt_type == STMT_RETURN){
+            translation(root->children[0]);
+            printf("return t%d\n", root->children[0]->var_idx_eeyore);
+        }
+        if(root->stmt_type == STMT_IDASN){
+            translation(root->children[0]);
+            int pos_in_var_table = -1;
+            for(int i = 0; i < var_table_idx; i += 1){
+                if(strcmp(var_table[i], root->name) == 0){
+                    pos_in_var_table = i;
+                    break;
+                }
+            }
+            if(pos_in_var_table == -1){
+                printf("error: var %s not defined, exit", root->name);
+                exit(1);
+            }
+            if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                printf("p%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+            }else{
+                printf("T%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+            }
+        }
+        if(root->stmt_type == STMT_ARRASN){
+            translation(root->children[0]);
+            translation(root->children[1]);
+            int pos_in_var_table = -1;
+            for(int i = 0; i < var_table_idx; i += 1){
+                if(strcmp(var_table[i], root->name) == 0){
+                    pos_in_var_table = i;
+                    break;
+                }
+            }
+            if(pos_in_var_table == -1){
+                printf("error: var %s not defined, exit", root->name);
+                exit(1);
+            }
+            printf("t%d = 4 * t%d\n", root->children[0]->var_idx_eeyore, root->children[0]->var_idx_eeyore);
+            if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                printf("p%d[t%d] = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
+            }else{
+                printf("T%d[t%d] = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
+            }
+        }
+        if(root->stmt_type == STMT_NA){
+            translation(root->children[0]);
+        }
+        translation(root->next);
     }
 }
