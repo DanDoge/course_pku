@@ -13,7 +13,7 @@ typedef enum{STMT_NA, STMT_IF, STMT_IDASN, STMT_WHILE, STMT_IFELSE, STMT_ARRASN,
 typedef enum{EXP_ID, EXP_ARR, EXP_NUM, EXP_BINOP, EXP_UNIOP, EXP_FUNCALL} Exp_Type;
 typedef enum{VAL_INT, VAL_BOOL} Val_Type;
 typedef enum{OP_GE, OP_LE, OP_EQ, OP_OR, OP_AND, OP_NOT, OP_DIV, OP_ADD, OP_SUB, OP_MOD, OP_MUL, OP_NEQ, OP_UMINUS} Op_Type;
-char op_table[16][4] = {">", "<", "==", "|", "&", "!", "/", "+", "-", "%", "*", "!=", "-"};
+char op_table[16][4] = {">", "<", "==", "||", "&&", "!", "/", "+", "-", "%", "*", "!=", "-"};
 typedef enum{VAR_FUNC, VAR_VART, VAR_VARP} Var_Type;
 
 typedef struct Node{
@@ -40,6 +40,7 @@ typedef struct Var_Table_Type{
     int var_idx_eeyore;
     int num_param;
     Var_Type var_type;
+    int var_depth;
 }Var_Table;
 
 Var_Table var_table[1024];

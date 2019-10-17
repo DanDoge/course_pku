@@ -15,7 +15,7 @@ char* cpy_string(char* s);
 
 void print_tree(node* root);
 
-void translation(node* root);
+void translation(node* root, int depth);
 
 extern char tokenString[10010];
 extern int intval;
@@ -148,8 +148,8 @@ def_fun :  INT id_with_name OPEN_ROUND_BRAC param_list CLOSE_ROUND_BRAC OPEN_CUR
                 $$ = new_node();
                 $$->name = $2->name;
                 $$->node_type = NODE_DEF_FUN;
-                $$->children[0] = $4;
-                $$->children[1] = $7;
+                $$->children[0] = $7;
+                $$->children[1] = $4;
                 if($4){
                     $$->num_param = $4->num_param;
                 }else{
@@ -170,7 +170,7 @@ param_list :    decl_var param_left
                     $$ = $1;
                     $$->next = $2;
                     if($2){
-                        $$->num_param = $$->num_param + 1;
+                        $$->num_param = $2->num_param + 1;
                     }else{
                         $$->num_param = 1;
                     }
@@ -189,7 +189,7 @@ param_left :    param_left COLON decl_var
                             tmp = tmp->next;
                         }
                         tmp->next = $3;
-                        $$ = tmp;
+                        $$ = $1;
                         $$->num_param = $1->num_param + 1;
                     }else{
                         $$ = $3;
@@ -215,7 +215,15 @@ decl_var :      INT id_with_name
                     $$->node_type = NODE_STMT;
                     $$->stmt_type = STMT_DECL_VAR;
                     $$->name = $2->name;
-                    $$->arr_size = ($4->val_num) << 2;
+                    $$->arr_size = (intval) << 2;
+                }
+                | INT id_with_name OPEN_SQUARE_BRAC CLOSE_SQUARE_BRAC
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_DECL_VAR;
+                    $$->name = $2->name;
+                    $$->arr_size = -1;
                 }
                 ;
 
@@ -497,7 +505,7 @@ id_left :       id_left COLON id_with_name
 int main(int argc, const char* argv[]){
     yyparse();
     //print_tree(root);
-    translation(root);
+    translation(root, 0);
     return 0;
 }
 
@@ -570,7 +578,18 @@ void print_tree(node* root){
     }
 }
 
-void translation(node* root){
+int find_in_vtb(char* name){
+    int pos_in_var_table = -1;
+    for(int i = var_table_idx - 1; i >= 0; i -= 1){
+        if(strcmp(var_table[i].name, name) == 0){
+            pos_in_var_table = i;
+            break;
+        }
+    }
+    return pos_in_var_table;
+}
+
+void translation(node* root, int depth){
     if(root == NULL){
         return ;
     }
@@ -578,18 +597,13 @@ void translation(node* root){
         var_table[var_table_idx].name = root->name;
         var_table[var_table_idx].num_param = root->num_param;
         var_table[var_table_idx].var_type = VAR_FUNC;
+        var_table[var_table_idx].var_depth = depth;
         var_table_idx += 1;
-        translation(root->next);
+        translation(root->next, 0);
     }
     if(root->node_type == NODE_DEF_FUN){
-        int in_var_table = 0;
-        for(int i = 0; i < var_table_idx; i += 1){
-            if(strcmp(var_table[i].name, root->name) == 0){
-                in_var_table = 1;
-                break;
-            }
-        }
-        if(!in_var_table){
+        /* TODO: what if a func being defined twice? */
+        if(find_in_vtb(root->name) == -1){
             var_table[var_table_idx].name = root->name;
             var_table[var_table_idx].num_param = root->num_param;
             var_table[var_table_idx].var_type = VAR_FUNC;
@@ -602,22 +616,22 @@ void translation(node* root){
             var_table[var_table_idx].name = param->name;
             var_table[var_table_idx].var_idx_eeyore = i;
             var_table[var_table_idx].var_type = VAR_VARP;
+            var_table[var_table_idx].var_depth = depth + 1; // sure?
             var_table_idx += 1;
             param = param->next;
         }
-        translation(root->children[0]);
+        translation(root->children[0], depth + 1);
         printf("end f_%s\n", root->name);
         var_table_idx = idx_without_param;
-        translation(root->next);
+        translation(root->next, depth);
     }
     if(root->node_type == NODE_STMT){
         if(root->stmt_type == STMT_DEF_VAR){
             /* a simplest assumption: define a var no more than once*/
-            for(int i = 0; i < var_table_idx; i += 1){
-                if(strcmp(var_table[i].name, root->name) == 0){
-                    printf("error: var %s already defined, exit", root->name);
-                    exit(1);
-                }
+            int pos_in_var_table = find_in_vtb(root->name);
+            if(pos_in_var_table != -1 && var_table[pos_in_var_table].var_depth == depth){
+                printf("error: var %s already defined in the same scope, exit", root->name);
+                exit(1);
             }
             root->var_idx_eeyore = varcnt_T;
             var_table[var_table_idx].name = root->name;
@@ -632,47 +646,49 @@ void translation(node* root){
             var_table_idx += 1;
         }
         if(root->stmt_type == STMT_IF){
-            translation(root->children[0]);
+            int idx_start = var_table_idx;
+            translation(root->children[0], depth);
             root->lbl_idx_eeyore = lblcnt;
             lblcnt += 1;
             printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore);
-            translation(root->children[1]);
+            translation(root->children[1], depth + 1);
             printf("l%d:\n", root->lbl_idx_eeyore);
+            var_table_idx = idx_start;
         }
         if(root->stmt_type == STMT_IFELSE){
-            translation(root->children[0]);
+            int idx_start = var_table_idx;
+            translation(root->children[0], depth);
             root->lbl_idx_eeyore = lblcnt;
             lblcnt += 2;
             printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore);
-            translation(root->children[1]);
+            translation(root->children[1], depth + 1);
+            var_table_idx = idx_start;
+            idx_start = var_table_idx;
             printf("goto l%d\n", root->lbl_idx_eeyore + 1);
             printf("l%d:\n", root->lbl_idx_eeyore);
-            translation(root->children[2]);
+            translation(root->children[2], depth + 1);
             printf("l%d:\n", root->lbl_idx_eeyore + 1);
+            var_table_idx = idx_start;
         }
         if(root->stmt_type == STMT_WHILE){
+            int idx_start = var_table_idx;
             root->lbl_idx_eeyore = lblcnt;
             lblcnt += 2;
             printf("l%d:\n", root->lbl_idx_eeyore);
-            translation(root->children[0]);
+            translation(root->children[0], depth);
             printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore + 1);
-            translation(root->children[1]);
+            translation(root->children[1], depth + 1);
             printf("goto l%d\n", root->lbl_idx_eeyore);
             printf("l%d:\n", root->lbl_idx_eeyore + 1);
+            var_table_idx = idx_start;
         }
         if(root->stmt_type == STMT_RETURN){
-            translation(root->children[0]);
+            translation(root->children[0], depth);
             printf("return t%d\n", root->children[0]->var_idx_eeyore);
         }
         if(root->stmt_type == STMT_IDASN){
-            translation(root->children[0]);
-            int pos_in_var_table = -1;
-            for(int i = 0; i < var_table_idx; i += 1){
-                if(strcmp(var_table[i].name, root->name) == 0){
-                    pos_in_var_table = i;
-                    break;
-                }
-            }
+            translation(root->children[0], depth);
+            int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: var %s not defined, exit", root->name);
                 exit(1);
@@ -684,15 +700,9 @@ void translation(node* root){
             }
         }
         if(root->stmt_type == STMT_ARRASN){
-            translation(root->children[0]);
-            translation(root->children[1]);
-            int pos_in_var_table = -1;
-            for(int i = 0; i < var_table_idx; i += 1){
-                if(strcmp(var_table[i].name, root->name) == 0){
-                    pos_in_var_table = i;
-                    break;
-                }
-            }
+            translation(root->children[0], depth);
+            translation(root->children[1], depth);
+            int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: var %s not defined, exit", root->name);
                 exit(1);
@@ -705,9 +715,11 @@ void translation(node* root){
             }
         }
         if(root->stmt_type == STMT_NA){
-            translation(root->children[0]);
+            int idx_start = var_table_idx;
+            translation(root->children[0], depth + 1);
+            var_table_idx = idx_start;
         }
-        translation(root->next);
+        translation(root->next, depth);
     }
 
     if(root->node_type == NODE_EXP){
@@ -716,12 +728,12 @@ void translation(node* root){
         varcnt_t += 1;
 
         if(root->exp_type == EXP_BINOP){
-            translation(root->children[0]);
-            translation(root->children[1]);
+            translation(root->children[0], depth);
+            translation(root->children[1], depth);
             printf("t%d = t%d %s t%d\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore, op_table[root->op_type], root->children[1]->var_idx_eeyore);
         }
         if(root->exp_type == EXP_UNIOP){
-            translation(root->children[0]);
+            translation(root->children[0], depth);
             if(root->op_type == OP_NOT){
                 printf("t%d = !t%d\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore);
             }else if(root->op_type == OP_UMINUS){
@@ -732,13 +744,7 @@ void translation(node* root){
             printf("t%d = %d\n", root->var_idx_eeyore, root->val_num);
         }
         if(root->exp_type == EXP_ID){
-            int pos_in_var_table = -1;
-            for(int i = 0; i < var_table_idx; i += 1){
-                if(strcmp(var_table[i].name, root->name) == 0){
-                    pos_in_var_table = i;
-                    break;
-                }
-            }
+            int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: var %s not defined, exit", root->name);
                 exit(1);
@@ -756,13 +762,7 @@ void translation(node* root){
                 cnt_param += 1;
                 tmp = tmp->next;
             }
-            int pos_in_var_table = -1;
-            for(int i = 0; i < var_table_idx; i += 1){
-                if(strcmp(var_table[i].name, root->name) == 0){
-                    pos_in_var_table = i;
-                    break;
-                }
-            }
+            int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: func %s not defined, exit", root->name);
                 exit(1);
@@ -773,13 +773,7 @@ void translation(node* root){
             }
             tmp = root->children[0];
             while(tmp){
-                int pos_in_var_table = -1;
-                for(int i = 0; i < var_table_idx; i += 1){
-                    if(strcmp(var_table[i].name, tmp->name) == 0){
-                        pos_in_var_table = i;
-                        break;
-                    }
-                }
+                int pos_in_var_table = find_in_vtb(tmp->name);
                 if(pos_in_var_table == -1){
                     printf("error: param %s not defined, exit", tmp->name);
                     exit(1);
@@ -794,8 +788,8 @@ void translation(node* root){
             printf("t%d = call f_%s\n", root->var_idx_eeyore, root->name);
         }
         if(root->exp_type == EXP_ARR){
-            translation(root->children[0]);
-            translation(root->children[1]);
+            translation(root->children[0], depth);
+            translation(root->children[1], depth);
             printf("t%d = 4 * t%d\n", root->children[1]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
             printf("t%d = t%d[t%d]\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
         }
