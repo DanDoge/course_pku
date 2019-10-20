@@ -1,5 +1,32 @@
 %{
 
+/*practice of compiler design, Huang Daoji
+ *
+ * design idea
+ * - all characters processed in yacc, and in bison, only tokens are processed
+ * - try to utilize array instead of tons of 'if's, when possible
+ * - unified naming of variables: foo_bar
+ *
+ * variable table as a stack
+ * - push in a new variable if a) not defined before, or
+ *                             b) defined in above depth
+ * - pop all local variables when '}' detected
+ *
+ */
+
+/*Change Log:
+ * 10-17: build-in functions added, not tested
+ *        array name as parameter added, tested
+ *        variable scope added, tested
+ */
+
+/*TODO list:
+ * [x] array name as parameter, 1017
+ * [x] variable scope: function, while, if(else), {}, 1017
+ * [ ] build-in functions
+ * [ ] duplicated function definition
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -602,7 +629,6 @@ void translation(node* root, int depth){
         translation(root->next, 0);
     }
     if(root->node_type == NODE_DEF_FUN){
-        /* TODO: what if a func being defined twice? */
         if(find_in_vtb(root->name) == -1){
             var_table[var_table_idx].name = root->name;
             var_table[var_table_idx].num_param = root->num_param;
@@ -756,20 +782,37 @@ void translation(node* root, int depth){
             }
         }
         if(root->exp_type == EXP_FUNCALL){
+            char build_in_func[4][10] = {"getint", "getchar", "putint", "putchar"};
+            int build_in_func_param[4] = [0, 0, 1, 1];
             int cnt_param = 0;
             node* tmp = root->children[0];
             while(tmp){
                 cnt_param += 1;
                 tmp = tmp->next;
             }
-            int pos_in_var_table = find_in_vtb(root->name);
-            if(pos_in_var_table == -1){
-                printf("error: func %s not defined, exit", root->name);
-                exit(1);
+            int is_build_in_func = 0;
+            for(int i = 0; i < 4; i += 1){
+                if(strcmp(build_in_func[i], root->name) == 0){
+                    if(cnt_param == build_in_func_param[i]){
+                        // fine
+                        is_build_in_func = 1;
+                        break;
+                    }else{
+                        printf("error: func %s parameter not match, exit", root->name);
+                        exit(1);
+                    }
+                }
             }
-            if(cnt_param != var_table[pos_in_var_table].num_param){
-                printf("error: func %s parameter not match, exit", root->name);
-                exit(1);
+            if(!is_build_in_func){
+                int pos_in_var_table = find_in_vtb(root->name);
+                if(pos_in_var_table == -1){
+                    printf("error: func %s not defined, exit", root->name);
+                    exit(1);
+                }
+                if(cnt_param != var_table[pos_in_var_table].num_param){
+                    printf("error: func %s parameter not match, exit", root->name);
+                    exit(1);
+                }
             }
             tmp = root->children[0];
             while(tmp){

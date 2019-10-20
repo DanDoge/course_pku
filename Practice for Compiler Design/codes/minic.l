@@ -71,13 +71,13 @@ comment     "//"[^\n]*
 /* define some functions, s.t. no need to link -lf */
 
 int yywrap(){
-    /* no need to parse more than one file */
+    /* no need to parse more than one files */
     return 1;
 }
 
 void yyerror(char* msg){
-    printf("Error occured in %d line when parsing  %s  \n", yylineno, msg);
-    exit(0);
+    printf("Error occured in line %d when parsing, error type: %s  \n", yylineno, msg);
+    exit(1);
 }
 
 /* define funcions ends */
