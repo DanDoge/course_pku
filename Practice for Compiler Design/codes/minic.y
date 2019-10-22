@@ -18,13 +18,17 @@
  * 10-17: build-in functions added, not tested
  *        array name as parameter added, tested
  *        variable scope added, tested
+ * 10-22: build-in funcions tested
+ *        priority of op, tested
+ *        duplicated function decl/def added, nto tested
  */
 
 /*TODO list:
  * [x] array name as parameter, 1017
  * [x] variable scope: function, while, if(else), {}, 1017
- * [ ] build-in functions
+ * [x] build-in functions
  * [ ] duplicated function definition
+ * [x] advanced expression test
  */
 
 #include <stdio.h>
@@ -621,10 +625,18 @@ void translation(node* root, int depth){
         return ;
     }
     if(root->node_type == NODE_DECL_FUN){
+        // TODO: what if a function is declared more than once?
+        int pos_in_var_table = find_in_vtb(root->name);
+        if(pos_in_var_table){
+            if(var_table[pos_in_var_table].num_param != root->num_param){
+                printf("error: func %s already declared with diff. # of param., exit", root->name);
+                exit(1);
+            }
+        }
         var_table[var_table_idx].name = root->name;
         var_table[var_table_idx].num_param = root->num_param;
         var_table[var_table_idx].var_type = VAR_FUNC;
-        var_table[var_table_idx].var_depth = depth;
+        var_table[var_table_idx].var_depth = depth; // useless...
         var_table_idx += 1;
         translation(root->next, 0);
     }
@@ -634,6 +646,9 @@ void translation(node* root, int depth){
             var_table[var_table_idx].num_param = root->num_param;
             var_table[var_table_idx].var_type = VAR_FUNC;
             var_table_idx += 1;
+        }else{
+            printf("error: func %s already defined, exit", root->name);
+            exit(1);
         }
         int idx_without_param = var_table_idx;
         printf("f_%s[%d]\n", root->name, root->num_param);
@@ -783,7 +798,7 @@ void translation(node* root, int depth){
         }
         if(root->exp_type == EXP_FUNCALL){
             char build_in_func[4][10] = {"getint", "getchar", "putint", "putchar"};
-            int build_in_func_param[4] = [0, 0, 1, 1];
+            int build_in_func_param[4] = {0, 0, 1, 1};
             int cnt_param = 0;
             node* tmp = root->children[0];
             while(tmp){
