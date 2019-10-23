@@ -1,0 +1,3 @@
+bison -d minic.y
+flex -o minic.lex.c minic.l
+gcc -o eeyore minic.tab.c minic.lex.c

@@ -20,15 +20,20 @@
  *        variable scope added, tested
  * 10-22: build-in funcions tested
  *        priority of op, tested
- *        duplicated function decl/def added, nto tested
+ *        duplicated function decl/def added, not tested
+ * 10-23: decl_fun bug fixed, score: 89/100
+ *        num as param. added, score: 93/100
+ *        complete ignore ^M
  */
 
 /*TODO list:
  * [x] array name as parameter, 1017
  * [x] variable scope: function, while, if(else), {}, 1017
  * [x] build-in functions
- * [ ] duplicated function definition
+ * [x] duplicated function definition
  * [x] advanced expression test
+ * [x] function as array index
+ * [x] num as param.
  */
 
 #include <stdio.h>
@@ -61,7 +66,8 @@ extern int intval;
 %token NUM ID
 
 %left ASN
-%left OR AND
+%left OR
+%left AND
 %left EQ NEQ
 %left GE LE
 %left ADD SUB
@@ -259,6 +265,19 @@ decl_var :      INT id_with_name
                 ;
 
 stmt_list:      stmt_list stmt
+                {
+                    node* tmp = $1;
+                    if(tmp){
+                        while(tmp->next){
+                            tmp = tmp->next;
+                        }
+                        tmp->next = $2;
+                        $$ = $1;
+                    }else{
+                        $$ = $2;
+                    }
+                }
+                | stmt_list decl_fun
                 {
                     node* tmp = $1;
                     if(tmp){
@@ -506,6 +525,12 @@ id_list :       id_with_name id_left
                     $$->name = $1->name;
                     $$->next = $2;
                 }
+                | NUM id_left
+                {
+                    $$ = new_node();
+                    $$->val_num = intval;
+                    $$->next = $2;
+                }
                 |
                 {
                     $$ = NULL;
@@ -523,6 +548,21 @@ id_left :       id_left COLON id_with_name
                         $$ = $1;
                     }else{
                         $$ = $3;
+                    }
+                }
+                | id_left COLON NUM
+                {
+                    node* tmp = $1;
+                    if(tmp){
+                        while(tmp->next){
+                            tmp = tmp->next;
+                        }
+                        tmp->next = new_node();
+                        tmp->next->val_num = intval;
+                        $$ = $1;
+                    }else{
+                        $$ = new_node();
+                        $$->val_num = intval;
                     }
                 }
                 |
@@ -627,9 +667,9 @@ void translation(node* root, int depth){
     if(root->node_type == NODE_DECL_FUN){
         // TODO: what if a function is declared more than once?
         int pos_in_var_table = find_in_vtb(root->name);
-        if(pos_in_var_table){
+        if(pos_in_var_table != -1){
             if(var_table[pos_in_var_table].num_param != root->num_param){
-                printf("error: func %s already declared with diff. # of param., exit", root->name);
+                printf("error: func %s already declared with diff. # of param., exit\n", root->name);
                 exit(1);
             }
         }
@@ -638,7 +678,7 @@ void translation(node* root, int depth){
         var_table[var_table_idx].var_type = VAR_FUNC;
         var_table[var_table_idx].var_depth = depth; // useless...
         var_table_idx += 1;
-        translation(root->next, 0);
+        translation(root->next, depth);
     }
     if(root->node_type == NODE_DEF_FUN){
         if(find_in_vtb(root->name) == -1){
@@ -831,16 +871,21 @@ void translation(node* root, int depth){
             }
             tmp = root->children[0];
             while(tmp){
-                int pos_in_var_table = find_in_vtb(tmp->name);
-                if(pos_in_var_table == -1){
-                    printf("error: param %s not defined, exit", tmp->name);
-                    exit(1);
-                }
-                if(var_table[pos_in_var_table].var_type == VAR_VARP){
-                    printf("param p%d\n", var_table[pos_in_var_table].var_idx_eeyore);
+                if(tmp->name == NULL){
+                    printf("param %d\n", tmp->val_num);
                 }else{
-                    printf("param T%d\n", var_table[pos_in_var_table].var_idx_eeyore);
+                    int pos_in_var_table = find_in_vtb(tmp->name);
+                    if(pos_in_var_table == -1){
+                        printf("error: param %s not defined, exit", tmp->name);
+                        exit(1);
+                    }
+                    if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                        printf("param p%d\n", var_table[pos_in_var_table].var_idx_eeyore);
+                    }else{
+                        printf("param T%d\n", var_table[pos_in_var_table].var_idx_eeyore);
+                    }
                 }
+
                 tmp = tmp->next;
             }
             printf("t%d = call f_%s\n", root->var_idx_eeyore, root->name);

@@ -43,7 +43,7 @@ typedef struct Var_Table_Type{
     int var_depth;
 }Var_Table;
 
-Var_Table var_table[1024];
+Var_Table var_table[10240];
 
 int var_table_idx = 0;
 

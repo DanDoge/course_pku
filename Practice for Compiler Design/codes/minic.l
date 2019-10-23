@@ -13,7 +13,7 @@ int intval;
 
 number      [0-9]+
 identifier  [a-zA-Z_][a-zA-Z0-9_]*
-ignore      [ \t\n]+
+ignore      [ \r\t\n]+
 comments    "/*"([^*]|"*"+[^"/"])*"*"+"/"
 comment     "//"[^\n]*
 
