@@ -4,7 +4,7 @@
  *
  * design idea
  * - all characters processed in yacc, and in bison, only tokens are processed
- * - try to utilize array instead of tons of 'if's, when possible
+ * - try to use array instead of tons of 'if's, when possible
  * - unified naming of variables: foo_bar
  *
  * variable table as a stack
@@ -21,19 +21,25 @@
  * 10-22: build-in funcions tested
  *        priority of op, tested
  *        duplicated function decl/def added, not tested
- * 10-23: decl_fun bug fixed, score: 89/100
+ * 10-23: initial submission, score: 46/100
+ *        decl_fun bug fixed, score: 89/100
  *        num as param. added, score: 93/100
- *        complete ignore ^M
+ *        ignore ^M, score: 100/100
+ * 10-24: error message modified
+ *        compressed node fields
  */
 
 /*TODO list:
- * [x] array name as parameter, 1017
- * [x] variable scope: function, while, if(else), {}, 1017
+ * [x] array name as parameter
+ * [x] variable scope: function, while, if(else), {}
  * [x] build-in functions
  * [x] duplicated function definition
  * [x] advanced expression test
  * [x] function as array index
- * [x] num as param.
+ * [x] num as param
+ * [ ] union in node fields
+ * [x] report lineno in error message
+ * [ ] optimization: var t0 \n t0 = 0
  */
 
 #include <stdio.h>
@@ -42,8 +48,12 @@
 #include "minic.h"
 
 #define YYSTYPE node *
+#define lbl_idx_eeyore var_idx_eeyore
+#define num_param val_num
+#define arr_size val_num
 
 extern void yyerror(char* message); // defined in minic.l
+extern int yylineno;
 
 node* new_node();
 
@@ -669,7 +679,7 @@ void translation(node* root, int depth){
         int pos_in_var_table = find_in_vtb(root->name);
         if(pos_in_var_table != -1){
             if(var_table[pos_in_var_table].num_param != root->num_param){
-                printf("error: func %s already declared with diff. # of param., exit\n", root->name);
+                printf("error: func %s already declared with diff. # of param. in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
         }
@@ -687,7 +697,7 @@ void translation(node* root, int depth){
             var_table[var_table_idx].var_type = VAR_FUNC;
             var_table_idx += 1;
         }else{
-            printf("error: func %s already defined, exit", root->name);
+            printf("error: func %s already defined in line %d, exit\n", root->name, yylineno);
             exit(1);
         }
         int idx_without_param = var_table_idx;
@@ -708,10 +718,10 @@ void translation(node* root, int depth){
     }
     if(root->node_type == NODE_STMT){
         if(root->stmt_type == STMT_DEF_VAR){
-            /* a simplest assumption: define a var no more than once*/
+            /* a simplest assumption: define a var no more than once in the same scope*/
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table != -1 && var_table[pos_in_var_table].var_depth == depth){
-                printf("error: var %s already defined in the same scope, exit", root->name);
+                printf("error: var %s already defined in the same scope in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
             root->var_idx_eeyore = varcnt_T;
@@ -771,7 +781,7 @@ void translation(node* root, int depth){
             translation(root->children[0], depth);
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
-                printf("error: var %s not defined, exit", root->name);
+                printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
             if(var_table[pos_in_var_table].var_type == VAR_VARP){
@@ -785,7 +795,7 @@ void translation(node* root, int depth){
             translation(root->children[1], depth);
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
-                printf("error: var %s not defined, exit", root->name);
+                printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
             printf("t%d = 4 * t%d\n", root->children[0]->var_idx_eeyore, root->children[0]->var_idx_eeyore);
@@ -809,6 +819,9 @@ void translation(node* root, int depth){
         varcnt_t += 1;
 
         if(root->exp_type == EXP_BINOP){
+            //TODO: optimization
+            int operand_idx[2] = {-1, -1}; // NUM -> intval, ID/p/T/t -> var_idx_eeyore
+            int operand_type[2] = {-1, -1}; // 0 -> NUM, 1 -> ID, 2 -> p, 3 -> T, 4 -> t
             translation(root->children[0], depth);
             translation(root->children[1], depth);
             printf("t%d = t%d %s t%d\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore, op_table[root->op_type], root->children[1]->var_idx_eeyore);
@@ -827,7 +840,7 @@ void translation(node* root, int depth){
         if(root->exp_type == EXP_ID){
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
-                printf("error: var %s not defined, exit", root->name);
+                printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
             if(var_table[pos_in_var_table].var_type == VAR_VARP){
@@ -853,7 +866,7 @@ void translation(node* root, int depth){
                         is_build_in_func = 1;
                         break;
                     }else{
-                        printf("error: func %s parameter not match, exit", root->name);
+                        printf("error: func %s parameter not match in line %d, exit\n", root->name, yylineno);
                         exit(1);
                     }
                 }
@@ -861,11 +874,11 @@ void translation(node* root, int depth){
             if(!is_build_in_func){
                 int pos_in_var_table = find_in_vtb(root->name);
                 if(pos_in_var_table == -1){
-                    printf("error: func %s not defined, exit", root->name);
+                    printf("error: func %s not defined in line %d, exit\n", root->name, yylineno);
                     exit(1);
                 }
                 if(cnt_param != var_table[pos_in_var_table].num_param){
-                    printf("error: func %s parameter not match, exit", root->name);
+                    printf("error: func %s parameter not match in line %d, exit\n", root->name, yylineno);
                     exit(1);
                 }
             }
@@ -876,7 +889,7 @@ void translation(node* root, int depth){
                 }else{
                     int pos_in_var_table = find_in_vtb(tmp->name);
                     if(pos_in_var_table == -1){
-                        printf("error: param %s not defined, exit", tmp->name);
+                        printf("error: param %s not defined in line %d, exit\n", tmp->name, yylineno);
                         exit(1);
                     }
                     if(var_table[pos_in_var_table].var_type == VAR_VARP){

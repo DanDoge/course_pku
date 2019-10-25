@@ -25,12 +25,11 @@ typedef struct Node{
     Op_Type op_type;
     Val_Type val_type;
     char *name;
-    int start_val;
-    int var_idx_eeyore;
-    int lbl_idx_eeyore;
-    int num_param;
-    int arr_size;
-    int val_num;
+    int var_idx_eeyore; // idx in eeyore or idx of label in eeyore
+    //int lbl_idx_eeyore;
+    //int num_param;
+    //int arr_size;
+    int val_num; // num: atoi(string); arr: arr_size; func: num_param;
 }node;
 
 node* root;
@@ -43,7 +42,7 @@ typedef struct Var_Table_Type{
     int var_depth;
 }Var_Table;
 
-Var_Table var_table[10240];
+Var_Table var_table[1024];
 
 int var_table_idx = 0;
 
