@@ -8,6 +8,9 @@
 *.snm
 *.out
 *.nav
+*.fdb_latexmk
+
+*.ipynb
 
 /Music and Mathematics/slides/*.pdf
 /Music and Mathematics/final/*.jpg
