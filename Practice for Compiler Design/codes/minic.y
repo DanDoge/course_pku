@@ -678,13 +678,13 @@ void translation(node* root, int depth){
         // TODO: what if a function is declared more than once?
         int pos_in_var_table = find_in_vtb(root->name);
         if(pos_in_var_table != -1){
-            if(var_table[pos_in_var_table].num_param != root->num_param){
+            if(var_table[pos_in_var_table].fun_num_param != root->num_param){
                 printf("error: func %s already declared with diff. # of param. in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
         }
         var_table[var_table_idx].name = root->name;
-        var_table[var_table_idx].num_param = root->num_param;
+        var_table[var_table_idx].fun_num_param = root->num_param;
         var_table[var_table_idx].var_type = VAR_FUNC;
         var_table[var_table_idx].var_depth = depth; // useless...
         var_table_idx += 1;
@@ -693,7 +693,7 @@ void translation(node* root, int depth){
     if(root->node_type == NODE_DEF_FUN){
         if(find_in_vtb(root->name) == -1){
             var_table[var_table_idx].name = root->name;
-            var_table[var_table_idx].num_param = root->num_param;
+            var_table[var_table_idx].fun_num_param = root->num_param;
             var_table[var_table_idx].var_type = VAR_FUNC;
             var_table_idx += 1;
         }else{
@@ -774,36 +774,89 @@ void translation(node* root, int depth){
             var_table_idx = idx_start;
         }
         if(root->stmt_type == STMT_RETURN){
-            translation(root->children[0], depth);
-            printf("return t%d\n", root->children[0]->var_idx_eeyore);
+            if(root->children[0]->exp_type == EXP_NUM){
+                printf("return %d\n", root->children[0]->val_num);
+            }else{
+                translation(root->children[0], depth);
+                printf("return t%d\n", root->children[0]->var_idx_eeyore);
+            }
         }
         if(root->stmt_type == STMT_IDASN){
-            translation(root->children[0], depth);
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
-            if(var_table[pos_in_var_table].var_type == VAR_VARP){
-                printf("p%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+            if(root->children[0]->exp_type == EXP_NUM){
+                if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                    printf("p%d = %d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->val_num);
+                }else{
+                    printf("T%d = %d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->val_num);
+                }
+            }else if(root->children[0]->exp_type == EXP_ID){
+                int id_pos_in_var_table = find_in_vtb(root->children[0]->name);
+                if(id_pos_in_var_table == -1){
+                    printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
+                    exit(1);
+                }
+                char prec[2][2] = {"p", "T"};
+                int idx_prec[2] = {-1, -1};
+
+                if(var_table[id_pos_in_var_table].var_type == VAR_VARP){
+                    idx_prec[1] = 0;
+                }else{
+                    idx_prec[1] = 1;
+                }
+                if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                    idx_prec[0] = 0;
+                }else{
+                    idx_prec[0] = 1;
+                }
+                printf("%s%d = %s%d\n", prec[idx_prec[0]], var_table[pos_in_var_table].var_idx_eeyore, prec[idx_prec[1]], var_table[id_pos_in_var_table].var_idx_eeyore);
             }else{
-                printf("T%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+                translation(root->children[0], depth);
+                if(var_table[pos_in_var_table].var_type == VAR_VARP){
+                    printf("p%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+                }else{
+                    printf("T%d = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore);
+                }
             }
         }
         if(root->stmt_type == STMT_ARRASN){
-            translation(root->children[0], depth);
-            translation(root->children[1], depth);
+            int operand_idx[2] = {-1, -1}; // NUM -> intval, ID/p/T/t -> var_idx_eeyore
+            int operand_type[2] = {-1, -1}; // 0 -> NUM, 2 -> p, 3 -> T, 4 -> t
+            char operand_output[4][2] = {"", "p", "T", "t"};
+            for(int child_idx = 0; child_idx < 2; child_idx += 1){
+                if(root->children[child_idx]->exp_type == EXP_NUM){
+                    operand_idx[child_idx] = root->children[child_idx]->val_num;
+                    operand_type[child_idx] = 0;
+                }else if(root->children[child_idx]->exp_type == EXP_ID){
+                    int pos_in_var_table = find_in_vtb(root->children[child_idx]->name);
+                    operand_idx[child_idx] = var_table[pos_in_var_table].var_idx_eeyore;
+                    if(var_table[pos_in_var_table].var_type == VAR_VART){
+                        operand_type[child_idx] = 2;
+                    }else{
+                        operand_type[child_idx] = 1;
+                    }
+                }else{
+                    translation(root->children[child_idx], depth);
+                    operand_type[child_idx] = 3;
+                    operand_idx[child_idx] = root->children[child_idx]->var_idx_eeyore;
+                }
+            }
             int pos_in_var_table = find_in_vtb(root->name);
             if(pos_in_var_table == -1){
                 printf("error: var %s not defined in line %d, exit\n", root->name, yylineno);
                 exit(1);
             }
-            printf("t%d = 4 * t%d\n", root->children[0]->var_idx_eeyore, root->children[0]->var_idx_eeyore);
+            printf("var t%d\n", varcnt_t);
+            printf("t%d = 4 * %s%d\n", varcnt_t, operand_output[operand_type[0]], operand_idx[0]);
             if(var_table[pos_in_var_table].var_type == VAR_VARP){
-                printf("p%d[t%d] = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
+                printf("p%d[t%d] = %s%d\n", var_table[pos_in_var_table].var_idx_eeyore, varcnt_t, operand_output[operand_type[1]], operand_idx[1]);
             }else{
-                printf("T%d[t%d] = t%d\n", var_table[pos_in_var_table].var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
+                printf("T%d[t%d] = %s%d\n", var_table[pos_in_var_table].var_idx_eeyore, varcnt_t, operand_output[operand_type[1]], operand_idx[1]);
             }
+            varcnt_t += 1;
         }
         if(root->stmt_type == STMT_NA){
             int idx_start = var_table_idx;
@@ -821,10 +874,27 @@ void translation(node* root, int depth){
         if(root->exp_type == EXP_BINOP){
             //TODO: optimization
             int operand_idx[2] = {-1, -1}; // NUM -> intval, ID/p/T/t -> var_idx_eeyore
-            int operand_type[2] = {-1, -1}; // 0 -> NUM, 1 -> ID, 2 -> p, 3 -> T, 4 -> t
-            translation(root->children[0], depth);
-            translation(root->children[1], depth);
-            printf("t%d = t%d %s t%d\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore, op_table[root->op_type], root->children[1]->var_idx_eeyore);
+            int operand_type[2] = {-1, -1}; // 0 -> NUM, 2 -> p, 3 -> T, 4 -> t
+            char operand_output[4][2] = {"", "p", "T", "t"};
+            for(int child_idx = 0; child_idx < 2; child_idx += 1){
+                if(root->children[child_idx]->exp_type == EXP_NUM){
+                    operand_idx[child_idx] = root->children[child_idx]->val_num;
+                    operand_type[child_idx] = 0;
+                }else if(root->children[child_idx]->exp_type == EXP_ID){
+                    int pos_in_var_table = find_in_vtb(root->children[child_idx]->name);
+                    operand_idx[child_idx] = var_table[pos_in_var_table].var_idx_eeyore;
+                    if(var_table[pos_in_var_table].var_type == VAR_VART){
+                        operand_type[child_idx] = 2;
+                    }else{
+                        operand_type[child_idx] = 1;
+                    }
+                }else{
+                    translation(root->children[child_idx], depth);
+                    operand_type[child_idx] = 3;
+                    operand_idx[child_idx] = root->children[child_idx]->var_idx_eeyore;
+                }
+            }
+            printf("t%d = %s%d %s %s%d\n", root->var_idx_eeyore, operand_output[operand_type[0]], operand_idx[0], op_table[root->op_type], operand_output[operand_type[1]], operand_idx[1]);
         }
         if(root->exp_type == EXP_UNIOP){
             translation(root->children[0], depth);
@@ -877,7 +947,7 @@ void translation(node* root, int depth){
                     printf("error: func %s not defined in line %d, exit\n", root->name, yylineno);
                     exit(1);
                 }
-                if(cnt_param != var_table[pos_in_var_table].num_param){
+                if(cnt_param != var_table[pos_in_var_table].fun_num_param){
                     printf("error: func %s parameter not match in line %d, exit\n", root->name, yylineno);
                     exit(1);
                 }
@@ -904,10 +974,31 @@ void translation(node* root, int depth){
             printf("t%d = call f_%s\n", root->var_idx_eeyore, root->name);
         }
         if(root->exp_type == EXP_ARR){
-            translation(root->children[0], depth);
-            translation(root->children[1], depth);
-            printf("t%d = 4 * t%d\n", root->children[1]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
-            printf("t%d = t%d[t%d]\n", root->var_idx_eeyore, root->children[0]->var_idx_eeyore, root->children[1]->var_idx_eeyore);
+            int operand_idx[2] = {-1, -1}; // NUM -> intval, ID/p/T/t -> var_idx_eeyore
+            int operand_type[2] = {-1, -1}; // 0 -> NUM, 2 -> p, 3 -> T, 4 -> t
+            char operand_output[4][2] = {"", "p", "T", "t"};
+            for(int child_idx = 0; child_idx < 2; child_idx += 1){
+                if(root->children[child_idx]->exp_type == EXP_NUM){
+                    operand_idx[child_idx] = root->children[child_idx]->val_num;
+                    operand_type[child_idx] = 0;
+                }else if(root->children[child_idx]->exp_type == EXP_ID){
+                    int pos_in_var_table = find_in_vtb(root->children[child_idx]->name);
+                    operand_idx[child_idx] = var_table[pos_in_var_table].var_idx_eeyore;
+                    if(var_table[pos_in_var_table].var_type == VAR_VART){
+                        operand_type[child_idx] = 2;
+                    }else{
+                        operand_type[child_idx] = 1;
+                    }
+                }else{
+                    translation(root->children[child_idx], depth);
+                    operand_type[child_idx] = 3;
+                    operand_idx[child_idx] = root->children[child_idx]->var_idx_eeyore;
+                }
+            }
+            printf("var t%d\n", varcnt_t);
+            printf("t%d = 4 * %s%d\n", varcnt_t, operand_output[operand_type[1]], operand_idx[1]);
+            printf("t%d = %s%d[t%d]\n", root->var_idx_eeyore, operand_output[operand_type[0]], operand_idx[0], varcnt_t);
+            varcnt_t += 1;
         }
     }
 }

@@ -37,7 +37,7 @@ node* root;
 typedef struct Var_Table_Type{
     char* name;
     int var_idx_eeyore;
-    int num_param;
+    int fun_num_param;
     Var_Type var_type;
     int var_depth;
 }Var_Table;
