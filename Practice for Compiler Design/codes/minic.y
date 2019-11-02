@@ -27,6 +27,8 @@
  *        ignore ^M, score: 100/100
  * 10-24: error message modified
  *        compressed node fields
+ * 10-31: union as #define, tested
+ *        optimization done, score: 100/100
  */
 
 /*TODO list:
@@ -37,9 +39,9 @@
  * [x] advanced expression test
  * [x] function as array index
  * [x] num as param
- * [ ] union in node fields
+ * [x] union in node fields, tested
  * [x] report lineno in error message
- * [ ] optimization: var t0 \n t0 = 0
+ * [x] optimization: var t0 \n t0 = 0, partially done
  */
 
 #include <stdio.h>
@@ -872,7 +874,7 @@ void translation(node* root, int depth){
         varcnt_t += 1;
 
         if(root->exp_type == EXP_BINOP){
-            //TODO: optimization
+            //TO/DO: optimization
             int operand_idx[2] = {-1, -1}; // NUM -> intval, ID/p/T/t -> var_idx_eeyore
             int operand_type[2] = {-1, -1}; // 0 -> NUM, 2 -> p, 3 -> T, 4 -> t
             char operand_output[4][2] = {"", "p", "T", "t"};
