@@ -222,6 +222,17 @@ INPUT ./metropolis.png
 INPUT analysis.png
 INPUT ./analysis.png
 INPUT ./analysis.png
+INPUT hmc_res.png
+INPUT ./hmc_res.png
+INPUT ./hmc_res.png
+INPUT HMC_step.png
+INPUT ./HMC_step.png
+INPUT ./HMC_step.png
+INPUT SGHMC.png
+INPUT ./SGHMC.png
+INPUT ./SGHMC.png
+INPUT c:/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
+INPUT c:/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
 INPUT hw2.aux
 INPUT c:/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 INPUT c:/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
