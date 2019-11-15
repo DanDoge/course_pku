@@ -46,11 +46,11 @@ ignore      [ \r\t\n]+
 "["         {return OPEN_SQUARE_BRAC;}
 "]"         {return CLOSE_SQUARE_BRAC;}
 
-[l]number   {strcpy(tokenString, yytext); return LABEL;}
-{number}    {intval = atoi(yytext); return NUM;}
-character+number    {strcpy(tokenString, yytext); return ID;}
-character+_number   {strcpy(tokenString, yytext); return FUNC;}
-ignore      {}
+[l][0-9]+          {strcpy(tokenString, yytext); return LABEL;}
+{number}            {intval = atoi(yytext); return NUM;}
+[a-zA-Z]+[0-9]*     {strcpy(tokenString, yytext); return ID;}
+[a-zA-Z|_]+[0-9]*    {strcpy(tokenString, yytext); return FUNC;}
+{ignore}              {}
 
 %%
 
