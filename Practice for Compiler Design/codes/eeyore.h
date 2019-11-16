@@ -5,7 +5,7 @@
 typedef enum{NODE_DEF_VAR, NODE_DEF_FUN, NODE_EXP} Node_Type;
 typedef enum{EXP_BINOP, EXP_UNIOP, EXP_ASN_RV, EXP_ARR_ASN, EXP_ASN_ARR, EXP_IF, EXP_GOTO, EXP_LBL, EXP_PARAM, EXP_FUNCALL, EXP_RETURN}  Exp_Type;
 typedef enum{OP_EQ, OP_NEQ, OP_ASN, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD, OP_AND, OP_OR, OP_GE, OP_LE, OP_NOT, OP_ID, OP_NUM} Op_Type;
-
+char op_table[16][4] = {"==", "!=", "=", "+", "-", "*", "/", "%", "&&", "||", ">", "<", "!"};
 
 typedef struct Var_Table{
     char* name;
