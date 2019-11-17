@@ -14,6 +14,8 @@ typedef struct Var_Table{
     int global;
     int num_param;
     int reg;
+    int last_stmt;
+    int evicted;
 }var_table;
 
 typedef struct Node{
@@ -31,12 +33,12 @@ typedef struct Node{
     int val_num;
     int num_param;
     int stack_size;
-    int use[128];
-    int define[128];
-    int live[128];
+    int use[256];
+    int define[256];
+    int live[256];
     var_table* local_var_table;
     int vtb_idx;
 }node;
 
-var_table global_var_table[10010];
+var_table global_var_table[1024];
 int gvt_idx = 0;
