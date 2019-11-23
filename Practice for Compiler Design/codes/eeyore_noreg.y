@@ -20,12 +20,12 @@ void live_analysis();
 
 void test_la();
 
-void linear_allocation();
+void get_last_live_stmt();
 
 void translate();
 
 int allocate_reg(node* t, int idx);
-void free_reg(node* t, int idx);
+void free_reg(node* t, int idx, int stmt_idx);
 
 int get_result(int a, int b, Op_Type op);
 
@@ -34,7 +34,7 @@ node* root;
 char reg_name[28][4] = {"x0", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11",
                         "t0", "t1", "t2", "t3", "t4", "t5", "t6",
                         "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"};
-int reg_used[32] = {};
+int reg_used[29] = {};
 int param_idx;
 
 %}
@@ -361,8 +361,8 @@ int main(){
     get_var_table();
     get_next_stmt();
     live_analysis();
-    test_la();
-    linear_allocation();
+    //test_la();
+    get_last_live_stmt();
     translate();
     return 0;
 }
@@ -393,7 +393,7 @@ var_table* new_table(){
         tmp[i].global = 0;
         tmp[i].num_param = 0;
         tmp[i].reg = 0;
-        tmp[i].in_stack = 0;
+        tmp[i].evicted = 0;
     }
     return tmp;
 }
@@ -449,22 +449,22 @@ void get_var_table(){
             node* child = t->children[0];
             while(child){
                 if(child->node_type == NODE_DEF_VAR){
-                    child->parent->local_var_table[child->parent->size].name = child->name;
-                    child->parent->local_var_table[child->parent->size].size = child->size;
-                    child->parent->local_var_table[child->parent->size].global = 0;
-                    child->parent->local_var_table[child->parent->size].loc_in_stack = child->parent->stack_size;
-                    child->parent->size += 1;
+                    t->local_var_table[t->size].name = child->name;
+                    t->local_var_table[t->size].size = child->size;
+                    t->local_var_table[t->size].global = 0;
+                    t->local_var_table[t->size].loc_in_stack = t->stack_size;
+                    t->size += 1;
                     if(child->size){
-                        child->parent->stack_size += child->size;
+                        t->stack_size += child->size;
                     }else{
-                        child->parent->stack_size += 1;
+                        t->stack_size += 1;
                     }
                 }
 
                 if(child->next){
-                    child->next->parent = child->parent;
+                    child->next->parent = t;
                 }else{
-                    child->parent->last_stmt = child;
+                    t->last_stmt = child;
                 }
                 child = child->next;
             }
@@ -635,14 +635,14 @@ void live_analysis(){
             stable = 1;
             while(tmp){
                 if(tmp->next_stmt[0] == NULL){
-                    for(int i = 0; i < 128; i += 1){
+                    for(int i = 0; i < t->size; i += 1){
                         tmp->live[i] = tmp->use[i];
                     }
                 }else{
                     // bool algebra
                     if(tmp->node_type == NODE_EXP && tmp->exp_type == EXP_IF){
                         int tmp_live[128];
-                        for(int i = 0; i < 128; i += 1){
+                        for(int i = 0; i < t->size; i += 1){
                             tmp_live[i] = tmp->next_stmt[0]->live[i] | tmp->next_stmt[1]->live[i];
                             tmp_live[i] = tmp_live[i] & (1 - tmp->define[i]);
                             tmp_live[i] = tmp_live[i] | tmp->use[i];
@@ -653,7 +653,7 @@ void live_analysis(){
                         }
                     }else{
                         int tmp_live[128];
-                        for(int i = 0; i < 128; i += 1){
+                        for(int i = 0; i < t->size; i += 1){
                             tmp_live[i] = tmp->next_stmt[0]->live[i];
                             tmp_live[i] = tmp_live[i] & (1 - tmp->define[i]);
                             tmp_live[i] = tmp_live[i] | tmp->use[i];
@@ -689,7 +689,33 @@ void test_la(){
             continue;
         }
         node* t_child = t->children[0];
+        printf("%s\n", t->name);
+
+        while(t_child){
+            if(t_child->node_type == NODE_DEF_VAR){
+                t_child = t_child->next;
+                continue;
+            }
+            for(int i = 0; i < t->size; i += 1){
+                printf("%d", t_child->live[i]);
+            }
+            printf("\n");
+            t_child = t_child->next;
+        }
+
+        t = t->next;
+    }
+}
+
+void get_last_live_stmt(){
+    node* t = root;
+    while(t){
+        if(t->node_type != NODE_DEF_FUN){
+            t = t->next;
+            continue;
+        }
         int stmt_idx = 1;
+        node* t_child = t->children[0];
         while(t_child){
             if(t_child->node_type == NODE_DEF_VAR){
                 t_child = t_child->next;
@@ -703,114 +729,9 @@ void test_la(){
             stmt_idx += 1;
             t_child = t_child->next;
         }
-
         t = t->next;
     }
 }
-
-int find_new_reg(int* reg){
-    for(int i = 1; i < 11; i += 1){
-        if(reg[i] == -1){
-            return i;
-        }
-    }
-    for(int i = 13; i < 20; i += 1){
-        if(reg[i] == -1){
-            return i;
-        }
-    }
-    return -1;
-}
-
-int evict_one_var(int* reg, node* t, int stmt_idx){
-    for(int i = 1; i < 11; i += 1){
-        if(t->local_var_table[reg[i]].last_stmt + 1 < stmt_idx){
-            reg[i] = -1;
-            return i;
-        }
-    }
-    for(int i = 13; i < 20; i += 1){
-        if(t->local_var_table[reg[i]].last_stmt + 1 < stmt_idx){
-            reg[i] = -1;
-            return i;
-        }
-    }
-    int largest_last_stmt = -1;
-    int largest_idx = -1;
-    for(int i = 1; i < 11; i += 1){
-        if(t->local_var_table[reg[i]].last_stmt > largest_last_stmt){
-            largest_last_stmt = t->local_var_table[reg[i]].last_stmt;
-            largest_idx = i;
-        }
-    }
-    for(int i = 13; i < 20; i += 1){
-        if(t->local_var_table[reg[i]].last_stmt > largest_last_stmt){
-            largest_last_stmt = t->local_var_table[reg[i]].last_stmt;
-            largest_idx = i;
-        }
-    }
-    //printf("evict %s from %s\n", t->local_var_table[reg[largest_idx]].name, reg_name[largest_idx]);
-    t->local_var_table[reg[largest_idx]].reg = -1;
-    reg[largest_idx] = -1;
-    return largest_idx;
-}
-
-void linear_allocation(){
-    node* t = root;
-    while(t){
-        if(t->node_type != NODE_DEF_FUN){
-            t = t->next;
-            continue;
-        }
-        node* t_child = t->children[0];
-
-        int reg[32]; // [13, 20), [1, 11)
-        for(int i = 0; i < 32; i += 1){
-            reg[i] = -1;
-        }
-        int stmt_idx = 1;
-        while(t_child){
-            //printf("%d\n", stmt_idx);
-            if(t_child->node_type == NODE_DEF_VAR){
-                t_child = t_child->next;
-                continue;
-            }
-
-            for(int i = 0; i < t->size; i += 1){
-                if(t_child->live[i]){
-                    //printf("%s ", t->local_var_table[i].name);
-                    if(t->local_var_table[i].reg == -1){
-                        continue;
-                    }
-                    if(t->local_var_table[i].reg == 0){
-                        // allocate one
-                        //printf("allocate reg for %s...", t->local_var_table[i].name);
-                        int new_reg = find_new_reg(reg);
-                        if(new_reg == -1){
-                            new_reg = evict_one_var(reg, t, stmt_idx);
-                        }
-                        reg[new_reg] = i;
-                        t->local_var_table[i].reg = new_reg;
-                        //printf("done\n");
-                    }
-                    //printf("%s in %s ", t->local_var_table[i].name, reg_name[t->local_var_table[i].reg]);
-                }
-            }
-            //printf("\n");
-            stmt_idx += 1;
-            t_child = t_child->next;
-        }
-        //printf("%s\n", t->name);
-        for(int i = 0; i < t->size; i += 1){
-            //printf("%s to %s, last_stmt %d\n", t->local_var_table[i].name, reg_name[t->local_var_table[i].reg], t->local_var_table[i].last_stmt);
-            if(t->local_var_table[i].reg == 0){
-                t->local_var_table[i].reg = 11;
-            }
-        }
-        t = t->next;
-    }
-}
-
 
 void translate(){
     node* t = root;
@@ -840,150 +761,271 @@ void translate(){
         memset(reg_used, -1, sizeof(reg_used));
 
         for(int i = 0; i < t->size; i += 1){
-            if(t->local_var_table[i].num_param){
-                printf("store %s %d\n", reg_name[t->local_var_table[i].num_param + 19], t->local_var_table[i].loc_in_stack);
-                t->local_var_table[i].in_stack = 1;
+            //printf("allocate var %s, %d\n", t->local_var_table[i].name, t->local_var_table[i].loc_in_stack);
+            if(t->local_var_table[i].global){
+                t->local_var_table[i].reg = allocate_reg(t_child, i);
+                if(t->local_var_table[i].size){
+                    printf("loadaddr v%d %s\n", i, reg_name[t->local_var_table[i].reg]);
+                }else{
+                    printf("load v%d %s\n", i, reg_name[t->local_var_table[i].reg]);
+                }
+                continue;
+            }
+            else if(t->local_var_table[i].size){
+                t->local_var_table[i].reg = allocate_reg(t_child, i);
+                printf("loadaddr %d %s\n", t->local_var_table[i].loc_in_stack, reg_name[t->local_var_table[i].reg]);
+                continue;
+            }
+            else if(t->local_var_table[i].num_param){
+                reg_used[t->local_var_table[i].num_param + 19] = i;
+                t->local_var_table[i].reg = t->local_var_table[i].num_param + 19;
             }
         }
+        //printf("global var done!\n");
 
+        int stmt_idx = 1;
         while(t_child){
+            //sprintf("translation...\n");
+            /*
+            for(int i = 0; i < 128 && i < t_child->parent->size; i += 1){
+                if(t_child->live[i] && t_child->parent->local_var_table[i].reg == 0){
+                    t_child->parent->local_var_table[i].reg = allocate_reg(t_child, i);
+                }
+            }
+            */
+
             if(t_child->node_type == NODE_DEF_VAR){
                 t_child = t_child->next;
                 continue;
             }
+
             switch(t_child->exp_type){
                 case EXP_BINOP:{
-                    //printf("op_type are: %d, %d, %d\n", t_child->children[1]->op_type, t_child->children[2]->op_type,  t_child->op_type);
+                    //printf("op_type are: %d, %d, %d\n", t_child->children[1]->global, t_child->children[2]->global,  t_child->op_type);
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     if(t_child->children[1]->op_type == OP_ID && t_child->children[2]->op_type == OP_ID){
                         int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
                         int pos_in_vtb2 = get_vtb_idx(t_child, t_child->children[2]->name);
-                        allocate_reg(t_child, pos_in_vtb1);
-                        allocate_reg(t_child, pos_in_vtb2);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb1);
+                            if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                                printf("load v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                            }
+                        }
+                        if(t_child->parent->local_var_table[pos_in_vtb2].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb2);
+                            if(t_child->parent->local_var_table[pos_in_vtb2].global){
+                                printf("load v%d %s\n", pos_in_vtb2, reg_name[t_child->parent->local_var_table[pos_in_vtb2].reg]);
+                            }
+                        }
                         int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                         int reg2 = t_child->parent->local_var_table[pos_in_vtb2].reg;
 
                         //printf("regs are %d, %d, %d\n", reg0, reg1, reg2);
 
                         printf("%s = %s %s %s\n", reg_name[reg0], reg_name[reg1], op_table[t_child->op_type], reg_name[reg2]);
-                        free_reg(t_child, pos_in_vtb1);
-                        free_reg(t_child, pos_in_vtb2);
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
+                        free_reg(t_child, pos_in_vtb2, stmt_idx);
                     }else if(t_child->children[1]->op_type == OP_ID && t_child->children[2]->op_type == OP_NUM){
                         int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
-                        allocate_reg(t_child, pos_in_vtb1);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb1);
+                            if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                                printf("load v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                            }
+                        }
                         int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                         printf("s11 = %d\n", t_child->children[2]->val_num);
                         printf("%s = %s %s s11\n", reg_name[reg0], reg_name[reg1], op_table[t_child->op_type]);
-                        free_reg(t_child, pos_in_vtb1);
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
                     }else if(t_child->children[1]->op_type == OP_NUM && t_child->children[2]->op_type == OP_ID){
                         int pos_in_vtb2 = get_vtb_idx(t_child, t_child->children[2]->name);
-                        allocate_reg(t_child, pos_in_vtb2);
+                        if(t_child->parent->local_var_table[pos_in_vtb2].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb2);
+                            if(t_child->parent->local_var_table[pos_in_vtb2].global){
+                                printf("load v%d %s\n", pos_in_vtb2, reg_name[t_child->parent->local_var_table[pos_in_vtb2].reg]);
+                            }
+                        }
                         int reg2 = t_child->parent->local_var_table[pos_in_vtb2].reg;
                         printf("s11 = %d\n", t_child->children[1]->val_num);
                         printf("%s = s11 %s %s\n", reg_name[reg0], op_table[t_child->op_type], reg_name[reg2]);
-                        free_reg(t_child, pos_in_vtb2);
+                        free_reg(t_child, pos_in_vtb2, stmt_idx);
                     }else{
                         int res = get_result(t_child->children[1]->val_num, t_child->children[2]->val_num, t_child->op_type);
                         printf("%s = %d\n", reg_name[reg0], res);
                     }
-                    free_reg(t_child, pos_in_vtb0);
+                    free_reg(t_child, pos_in_vtb0, stmt_idx);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                        printf("loadaddr v%d s11\n", pos_in_vtb0);
+                        printf("s11[0] = %s\n", reg_name[reg0]);
+                    }
                     break;
                 }
                 case EXP_UNIOP:{
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     if(t_child->children[1]->op_type == OP_ID){
                         int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
-                        allocate_reg(t_child, pos_in_vtb1);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb1);
+                            if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                                printf("load v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                            }
+                        }
                         int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                         printf("%s = %s %s\n", reg_name[reg0], op_table[t_child->op_type], reg_name[reg1]);
-                        free_reg(t_child, pos_in_vtb1);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
                     }else{
                         int tmp = 0;
                         if(t_child->op_type == OP_NOT){
                             tmp = !(t_child->children[1]->val_num);
                         }else{
-                            tmp = -(t_child->children[1]->val_num);
+                            tmp = -t_child->children[1]->val_num;
                         }
                         printf("%s = %d\n", reg_name[reg0], tmp);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
                     }
-                    free_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                        printf("loadaddr v%d s11\n", pos_in_vtb0);
+                        printf("s11[0] = %s\n", reg_name[reg0]);
+                    }
                     break;
                 }
                 case EXP_ASN_RV:{
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     if(t_child->children[1]->op_type == OP_NUM){
                         // num
                         printf("%s = %d\n", reg_name[reg0], t_child->children[1]->val_num);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
                     }else{
                         // var
                         int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
-                        allocate_reg(t_child, pos_in_vtb1);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb1);
+                            if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                                printf("load v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                            }
+                        }
                         int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                         printf("%s = %s\n", reg_name[reg0], reg_name[reg1]);
-                        free_reg(t_child, pos_in_vtb1);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
                     }
-                    free_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                        printf("loadaddr v%d s11\n", pos_in_vtb0);
+                        printf("s11[0] = %s\n", reg_name[reg0]);
+                    }
                     break;
                 }
                 case EXP_ARR_ASN:{
                     // arr_name[idx] = rv ==> idx must be a var, rv could be a num
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                        if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                            printf("loadaddr v%d %s\n", pos_in_vtb0, reg_name[t_child->parent->local_var_table[pos_in_vtb0].reg]);
+                        }else if(t_child->parent->local_var_table[pos_in_vtb0].num_param == 0){
+                            printf("loadaddr %d %s\n", t_child->parent->local_var_table[pos_in_vtb0].loc_in_stack, reg_name[t_child->parent->local_var_table[pos_in_vtb0].reg]);
+                        }
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
 
                     int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
-                    allocate_reg(t_child, pos_in_vtb1);
+                    if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb1);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                            printf("load v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                        }
+                    }
                     int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                     if(t_child->children[2]->op_type == OP_ID){
                         int pos_in_vtb2 = get_vtb_idx(t_child, t_child->children[2]->name);
-                        allocate_reg(t_child, pos_in_vtb2);
+                        if(t_child->parent->local_var_table[pos_in_vtb2].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb2);
+                            if(t_child->parent->local_var_table[pos_in_vtb2].global){
+                                printf("load v%d %s\n", pos_in_vtb2, reg_name[t_child->parent->local_var_table[pos_in_vtb2].reg]);
+                            }
+                        }
                         int reg2 = t_child->parent->local_var_table[pos_in_vtb2].reg;
 
                         printf("s11 = %s + %s\n", reg_name[reg0], reg_name[reg1]);
                         printf("s11[0] = %s\n", reg_name[reg2]);
 
-                        free_reg(t_child, pos_in_vtb2);
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
+                        free_reg(t_child, pos_in_vtb2, stmt_idx);
                     }else{
                         printf("s11 = %s + %s\n", reg_name[reg0], reg_name[reg1]);
                         printf("s10 = %d\n", t_child->children[2]->val_num);
                         printf("s11[0] = s10\n");
+
+                        free_reg(t_child, pos_in_vtb1, stmt_idx);
                     }
-                    free_reg(t_child, pos_in_vtb1);
-                    free_reg(t_child, pos_in_vtb0);
+                    free_reg(t_child, pos_in_vtb0, stmt_idx);
                     break;
                 }
                 case EXP_ASN_ARR:{
                     // var = arr[var], no number here
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     int pos_in_vtb1 = get_vtb_idx(t_child, t_child->children[1]->name);
-                    allocate_reg(t_child, pos_in_vtb1);
+                    if(t_child->parent->local_var_table[pos_in_vtb1].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb1);
+                        if(t_child->parent->local_var_table[pos_in_vtb1].global){
+                            printf("loadaddr v%d %s\n", pos_in_vtb1, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                        }else if(t_child->parent->local_var_table[pos_in_vtb1].num_param == 0){
+                            printf("loadaddr %d %s\n", t_child->parent->local_var_table[pos_in_vtb1].loc_in_stack, reg_name[t_child->parent->local_var_table[pos_in_vtb1].reg]);
+                        }
+                    }
                     int reg1 = t_child->parent->local_var_table[pos_in_vtb1].reg;
                     int pos_in_vtb2 = get_vtb_idx(t_child, t_child->children[2]->name);
-                    allocate_reg(t_child, pos_in_vtb2);
+                    if(t_child->parent->local_var_table[pos_in_vtb2].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb2);
+                        if(t_child->parent->local_var_table[pos_in_vtb2].global){
+                            printf("load v%d %s\n", pos_in_vtb2, reg_name[t_child->parent->local_var_table[pos_in_vtb2].reg]);
+                        }
+                    }
                     int reg2 = t_child->parent->local_var_table[pos_in_vtb2].reg;
                     printf("s11 = %s + %s\n", reg_name[reg1], reg_name[reg2]);
                     printf("%s = s11[0]\n", reg_name[reg0]);
 
-                    free_reg(t_child, pos_in_vtb0);
-                    free_reg(t_child, pos_in_vtb1);
-                    free_reg(t_child, pos_in_vtb2);
+                    free_reg(t_child, pos_in_vtb0, stmt_idx);
+                    free_reg(t_child, pos_in_vtb1, stmt_idx);
+                    free_reg(t_child, pos_in_vtb2, stmt_idx);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                        printf("loadaddr v%d s11\n", pos_in_vtb0);
+                        printf("s11[0] = %s\n", reg_name[reg0]);
+                    }
                     break;
                 }
                 case EXP_IF:{
                     // if var == 0 goto label
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        allocate_reg(t_child, pos_in_vtb0);
+                        if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                            printf("load v%d %s\n", pos_in_vtb0, reg_name[t_child->parent->local_var_table[pos_in_vtb0].reg]);
+                        }else{
+                            printf("load %d %s\n", t_child->parent->local_var_table[pos_in_vtb0].loc_in_stack, reg_name[t_child->parent->local_var_table[pos_in_vtb0].reg]);
+                        }
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     printf("if %s == x0 goto %s\n", reg_name[reg0], t_child->name);
-                    free_reg(t_child, pos_in_vtb0);
+                    free_reg(t_child, pos_in_vtb0, stmt_idx);
                     break;
                 }
                 case EXP_GOTO:{
@@ -997,23 +1039,25 @@ void translate(){
                 case EXP_PARAM:{
                     // param rv
                     if(param_idx == 0){
-                        for(int i = 0; i < t_child->parent->size; i += 1){
-                            if(t_child->parent->local_var_table[i].num_param){
-                                int reg = t_child->parent->local_var_table[i].reg;
-                                printf("store %s %d\n", reg_name[reg]
-                                , t_child->parent->local_var_table[i].loc_in_stack);
-                                t_child->parent->local_var_table[i].in_stack = 1;
+                        for(int i = 20; i < 28; i += 1){
+                            if(reg_used[i] != -1 &&  t_child->parent->local_var_table[reg_used[i]].size == 0){
+                                printf("store %s %d\n", reg_name[i], t_child->parent->local_var_table[reg_used[i]].loc_in_stack);
                             }
                         }
                     }
                     if(t_child->children[0]->op_type == OP_ID){
                         int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                        allocate_reg(t_child, pos_in_vtb0);
+                        if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb0);
+                            if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                                printf("loadaddr v%d %s\n", pos_in_vtb0, reg_name[t_child->parent->local_var_table[pos_in_vtb0].reg]);
+                            }
+                        }
                         int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
 
                         printf("%s = %s\n", reg_name[param_idx + 20], reg_name[reg0]);
                         param_idx += 1;
-                        free_reg(t_child, pos_in_vtb0);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
                     }else{
                         printf("%s = %d\n", reg_name[param_idx + 20], t_child->children[0]->val_num);
                         param_idx += 1;
@@ -1022,42 +1066,74 @@ void translate(){
                 }
                 case EXP_FUNCALL:{
                     param_idx = 0;
-
-                    for(int i = 1; i < 32; i += 1){
-                        if(reg_used[i] >= 0
-                            && t_child->parent->local_var_table[reg_used[i]].size == 0
-                            && t_child->parent->local_var_table[reg_used[i]].global == 0){
-                            printf("store %s %d\n", reg_name[i], t_child->parent->local_var_table[reg_used[i]].loc_in_stack);
+                    int store_list[32];
+                    int store_idx = 0;
+                    for(int i = 0; i < t_child->parent->size; i += 1){
+                        if(t_child->parent->local_var_table[i].reg == 0){
+                            continue;
                         }
+                        if(t_child->parent->local_var_table[i].num_param > 0){
+                            continue;
+                        }
+                        if(t_child->parent->local_var_table[i].size > 0){
+                            continue;
+                        }
+                        if(t_child->parent->local_var_table[i].global){
+                            printf("loadaddr v%d s11\n", i);
+                            printf("s11[0] = %s\n", reg_name[t_child->parent->local_var_table[i].reg]);
+                        }else{
+                            printf("store %s %d\n", reg_name[t_child->parent->local_var_table[i].reg], t_child->parent->local_var_table[i].loc_in_stack);
+                        }
+                        store_list[store_idx++] = i;
                     }
-
                     printf("call %s\n", t_child->name);
-
-                    for(int i = 1; i < 32; i += 1){
-                        if(reg_used[i] >= 0
-                            && t_child->parent->local_var_table[reg_used[i]].size == 0
-                            && t_child->parent->local_var_table[reg_used[i]].global == 0){
-                            printf("load %d %s\n", t_child->parent->local_var_table[reg_used[i]].loc_in_stack, reg_name[i]);
-                        }
-                    }
 
                     int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
                     int return_val_vtb = 0;
-                    allocate_reg(t_child, pos_in_vtb0);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                        return_val_vtb = 1;
+                        allocate_reg(t_child, pos_in_vtb0);
+                    }
                     int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                     printf("%s = a0\n", reg_name[reg0]);
+                    if(t_child->parent->local_var_table[pos_in_vtb0].global){
+                        printf("loadaddr v%d s11\n", pos_in_vtb0);
+                        printf("s11[0] = %s\n", reg_name[reg0]);
+                    }
 
-                    free_reg(t_child, pos_in_vtb0);
+                    free_reg(t_child, pos_in_vtb0, stmt_idx);
+
+                    for(int i = 0; i < store_idx; i += 1){
+                        if(t_child->parent->local_var_table[store_list[i]].global){
+                            printf("load v%d %s\n", t_child->parent->local_var_table[store_list[i]].loc_in_stack, reg_name[t_child->parent->local_var_table[store_list[i]].reg]);
+                        }else{
+                            printf("load %d %s\n", t_child->parent->local_var_table[store_list[i]].loc_in_stack, reg_name[t_child->parent->local_var_table[store_list[i]].reg]);
+                        }
+                    }
 
                     break;
                 }
                 case EXP_RETURN:{
+                    /*
+                    for(int i = 0; i < t_child->parent->size; i += 1){
+                        if(t_child->parent->local_var_table[i].global == 0){
+                            break;
+                        }
+                        if(t_child->parent->local_var_table[i].reg == 0 || t_child->parent->local_var_table[i].size > 0){
+                            continue;
+                        }
+                        printf("loadaddr v%d s11\n", i);
+                        printf("s11[0] = %s\n", reg_name[t_child->parent->local_var_table[i].reg]);
+                    }
+                    */
                     if(t_child->children[0]->op_type == OP_ID){
                         int pos_in_vtb0 = get_vtb_idx(t_child, t_child->children[0]->name);
-                        allocate_reg(t_child, pos_in_vtb0);
+                        if(t_child->parent->local_var_table[pos_in_vtb0].reg == 0){
+                            allocate_reg(t_child, pos_in_vtb0);
+                        }
                         int reg0 = t_child->parent->local_var_table[pos_in_vtb0].reg;
                         printf("a0 = %s\n", reg_name[reg0]);
-                        free_reg(t_child, pos_in_vtb0);
+                        free_reg(t_child, pos_in_vtb0, stmt_idx);
                     }else{
                         printf("a0 = %d\n", t_child->children[0]->val_num);
                     }
@@ -1068,7 +1144,7 @@ void translate(){
                     printf("Error! No such exp_type %d!\n", t_child->exp_type);
                 }
             }
-
+            stmt_idx += 1;
             t_child = t_child->next;
         }
 
@@ -1132,80 +1208,100 @@ int get_result(int a, int b, Op_Type op){
     return res;
 }
 
-/* [25, 28) */
-int tmp_a_used[3];
-
-void free_reg(node* t_child, int idx){
+void free_reg(node* t_child, int idx, int stmt_idx){
     if(t_child->next == NULL){
+        return ;
+    }
+
+    if(t_child->parent->local_var_table[idx].global){
         return ;
     }
     if(t_child->parent->local_var_table[idx].size){
         return ;
     }
-    if(t_child->parent->local_var_table[idx].reg != -1){
-        if(t_child->parent->local_var_table[idx].reg >= 25){
-            int reg = t_child->parent->local_var_table[idx].reg;
-            reg_used[t_child->parent->local_var_table[idx].reg] = -1;
-            tmp_a_used[t_child->parent->local_var_table[idx].reg - 25] = 0;
-            if(t_child->parent->local_var_table[idx].global){
-                printf("loadaddr v%d s11\n", idx);
-                printf("s11[0] = %s\n", reg_name[reg]);
-            }else{
-                printf("store %s %d\n", reg_name[reg] , t_child->parent->local_var_table[idx].loc_in_stack);
-            }
-            t_child->parent->local_var_table[idx].reg = -1;
-            return ;
-        }else if(t_child->parent->local_var_table[idx].in_stack == 0 && t_child->parent->local_var_table[idx].global == 0){
-            return ;
-        }
-    }
+    //printf("%d, %d\n", stmt_idx, t_child->parent->local_var_table[idx].last_stmt);
+    /*
+    if(stmt_idx >= t_child->parent->local_var_table[idx].last_stmt){
+        reg_used[t_child->parent->local_var_table[idx].reg] = -1;
+        t_child->parent->local_var_table[idx].reg = 0;
+    }*/
     if(t_child->parent->local_var_table[idx].global){
-        printf("loadaddr v%d s11\n", idx);
-        printf("s11[0] = %s\n", reg_name[t_child->parent->local_var_table[idx].reg]);
+        //printf("store v%d %s\n", idx, reg_name[reg_chosen]);
     }else{
-        printf("store %s %d\n", reg_name[t_child->parent->local_var_table[idx].reg]
-                              , t_child->parent->local_var_table[idx].loc_in_stack);
+        printf("store %s %d\n", reg_name[t_child->parent->local_var_table[idx].reg], t_child->parent->local_var_table[idx].loc_in_stack);
     }
+    reg_used[t_child->parent->local_var_table[idx].reg] = -1;
+    t_child->parent->local_var_table[idx].reg = 0;
+    t_child->parent->local_var_table[idx].evicted = 1;
     return ;
 }
 
 int allocate_reg(node* t_child, int idx){
     //printf("allocate var: %s idx: %d\n", t_child->parent->local_var_table[idx].name, idx);
-    int reg = -1;
-    if(t_child->parent->local_var_table[idx].reg != -1){
-        if(t_child->parent->local_var_table[idx].in_stack == 0
-            && t_child->parent->local_var_table[idx].global == 0
-            && t_child->parent->local_var_table[idx].size == 0){
-            reg_used[t_child->parent->local_var_table[idx].reg] = idx;
-            return t_child->parent->local_var_table[idx].reg;
-        }else{
-            reg = t_child->parent->local_var_table[idx].reg;
-        }
+    int reg_chosen = 0;
+    if(t_child->parent->local_var_table[idx].num_param){
+        int tmp = t_child->parent->local_var_table[idx].num_param + 19;
+        reg_chosen = tmp;
+        //printf("to %s: %d\n", reg_name[tmp], tmp);
+        //return tmp;
     }
-    for(int i = 0; i < 3 && reg == -1; i += 1){
-        if(tmp_a_used[i] == 0){
-            reg = i + 25;
-            t_child->parent->local_var_table[idx].reg = reg;
-            tmp_a_used[i] = 1;
+    for(int i = 13; i < 20 && !reg_chosen; i += 1){
+        if(reg_used[i] == -1){
+            //printf("to %s: %d\n", reg_name[i], i);
+            reg_chosen = i;
             break;
         }
     }
-    if(t_child->parent->local_var_table[idx].size){
-        if(t_child->parent->local_var_table[idx].global){
-            printf("loadaddr v%d %s\n", idx, reg_name[reg]);
-        }else if(t_child->parent->local_var_table[idx].num_param == 0){
-            printf("loadaddr %d %s\n", t_child->parent->local_var_table[idx].loc_in_stack, reg_name[reg]);
+    for(int i = 1; i < 11 && !reg_chosen; i += 1){
+        if(reg_used[i] == -1){
+            //printf("to %s: %d\n", reg_name[i], i);
+            reg_chosen = i;
+            break;
         }
-        return reg;
     }
-    if(t_child->parent->local_var_table[idx].global == 0){
-        printf("load %d %s\n", t_child->parent->local_var_table[idx].loc_in_stack, reg_name[reg]);
-    }else{
-        printf("load v%d %s\n", idx, reg_name[reg]);
+    // evict one to stack
+    if(!reg_chosen){
+        int largest_last_stmt = 0;
+        int idx_largest = 0;
+        for(int i = 1; i < 11; i += 1){
+            if(t_child->parent->local_var_table[reg_used[i]].last_stmt > largest_last_stmt
+                && t_child->parent->local_var_table[reg_used[i]].global == 0
+                && t_child->parent->local_var_table[reg_used[i]].size == 0){
+                largest_last_stmt = t_child->parent->local_var_table[reg_used[i]].last_stmt;
+                idx_largest = i;
+            }
+        }
+        for(int i = 13; i < 20; i += 1){
+            if(t_child->parent->local_var_table[reg_used[i]].last_stmt > largest_last_stmt
+                && t_child->parent->local_var_table[reg_used[i]].global == 0
+                && t_child->parent->local_var_table[reg_used[i]].size == 0){
+                largest_last_stmt = t_child->parent->local_var_table[reg_used[i]].last_stmt;
+                idx_largest = i;
+            }
+        }
+        if(t_child->parent->local_var_table[reg_used[idx_largest]].global){
+            printf("loadaddr v%d s11\n", reg_used[idx_largest]);
+            printf("s11[0] = %s\n", reg_name[idx_largest]);
+        }else{
+            printf("store %s %d\n", reg_name[idx_largest], t_child->parent->local_var_table[reg_used[idx_largest]].loc_in_stack);
+        }
+        t_child->parent->local_var_table[reg_used[idx_largest]].evicted = 1;
+        t_child->parent->local_var_table[reg_used[idx_largest]].reg = 0;
+        reg_chosen = idx_largest;
     }
-    if(t_child->parent->local_var_table[idx].reg != -1){
-        reg_used[reg] = idx;
+
+    if(reg_chosen){
+        if(t_child->parent->local_var_table[idx].evicted == 1){
+            if(t_child->parent->local_var_table[idx].global){
+                printf("load v%d %s\n", idx, reg_name[reg_chosen]);
+            }else{
+                printf("load %d %s\n", t_child->parent->local_var_table[idx].loc_in_stack, reg_name[reg_chosen]);
+            }
+            t_child->parent->local_var_table[idx].evicted = 0;
+        }
+        reg_used[reg_chosen] = idx;
+        t_child->parent->local_var_table[idx].reg = reg_chosen;
+        return reg_chosen;
     }
-    // t_child->parent->local_var_table[idx].in_stack = 0;
-    return reg;
+    return -1;
 }
