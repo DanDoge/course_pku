@@ -206,7 +206,7 @@ The EM algorithm is shown below \\
     \caption{EM for GMM}
     \KwResult{$\mu, \sigma^2, w$}
     \Begin{
-        initialize $mu, sigma^2, w$ \\
+        initialize $\mu, \sigma^2, w$ \\
         \While{not converge}{
             calculate $\gamma_{n, k}$ \\
             update $\mu, \sigma^2, w$
@@ -217,6 +217,17 @@ The EM algorithm is shown below \\
 \textbf{(2)}
 
 EM algorithm does not always converge on this dataset. In my implementation, four modes are found.
+
+\begin{figure}[!htb]
+\minipage{0.49\textwidth}
+  \includegraphics[width=\linewidth]{./mu_mode.png}
+  \caption{results of $\mu$}\label{fig:awesome_image1}
+\endminipage\hfill
+\minipage{0.49\textwidth}%
+  \includegraphics[width=\linewidth]{./sigma_mode.png}
+  \caption{results of $\sigma^2$}\label{fig:awesome_image3}
+\endminipage
+\end{figure}
 
 \end{homeworkProblem}
 
@@ -247,7 +258,7 @@ In M-step, we derive its log likelihood function first
     \end{aligned}
 \end{equation}
 
-Substitute $z_{j1}$ by $E(z_{j1} | x_{j}, \theta)$ and set the derivative to zero, we have
+Substitute $z_{j1}$ by $E(z_{j1} | x_{j}, \theta)$(since $\theta$ is irrelevant to $z_{j1}$) and set the derivative to zero, we have
 
 \begin{equation}
     \theta' = \frac{\theta}{\sum_j x_j} \sum_j \frac{y_j x_j}{x_j \theta + r_j}
@@ -302,12 +313,15 @@ By taking second derivative of log likelihood function in \textbf{(1)}, we have
 \textbf{(1)}
 
 \begin{equation}
-    l(\pi) = 100\log \pi_{11} + 50 \log \pi_{12} + 75 \log \pi_{21} + 75 \log \pi_{22}
+    \begin{aligned}
+        l(\pi) &= 100\log \pi_{11} + 50 \log \pi_{12} + 75 \log \pi_{21} + 75 \log \pi_{22} \\
+        &+ 28 \log (\pi_{11} + \pi_{12}) + 60 \log (\pi_{21} + \pi_{22}) + 30 \log (\pi_{11} + \pi_{21}) + 60 \log (\pi_{12} + \pi_{22})
+    \end{aligned}
 \end{equation}
 
 The assumption under such a log likelihood includes
 \begin{itemize}
-    \item missing data do not count for likelihood, although they are partially observed
+    \item outcomes of $Y_1, Y_2$ and that whether one of the outcomes is missing are independent, $i.e.$ the fact that one of the outcomes is missing does not effect the prob. of that outcome
 \end{itemize}
 
 \textbf{(2)}

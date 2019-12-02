@@ -207,6 +207,12 @@ INPUT c:/texlive/2019/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT c:/texlive/2019/texmf-dist/fonts/tfm/public/cm/cmti10.tfm
 OUTPUT hw_3.pdf
 INPUT c:/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map
+INPUT ./mu_mode.png
+INPUT ./mu_mode.png
+INPUT ./mu_mode.png
+INPUT ./sigma_mode.png
+INPUT ./sigma_mode.png
+INPUT ./sigma_mode.png
 INPUT c:/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
 INPUT c:/texlive/2019/texmf-dist/tex/latex/base/omscmr.fd
 INPUT hw_3.aux
