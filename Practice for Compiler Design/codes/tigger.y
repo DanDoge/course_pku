@@ -35,6 +35,7 @@ single_line:        id_with_name ASN NUM
                         printf(".global %s\n", $1);
                         printf(".section .sdata\n.align 2\n");
                         printf(".type %s, @object\n", $1);
+                        printf(".size %s, 4\n", $1);
                         printf("%s:\n", $1);
                         printf(".word %d\n", intval);
                     }
@@ -111,7 +112,7 @@ single_line:        id_with_name ASN NUM
                     {
                         printf("li %s,%d\n", $1, intval);
                     }
-                    | reg_with_name OPEN_SQUARE_BRAC NUM ASN reg_with_name
+                    | reg_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC ASN reg_with_name
                     {
                         printf("sw %s,-%d(%s)\n", $6, intval, $1);
                     }
@@ -137,7 +138,7 @@ single_line:        id_with_name ASN NUM
                     }
                     | STORE reg_with_name NUM
                     {
-                        printf("sw %s, %d(sp)\n", $2, intval << 2);
+                        printf("sw %s,%d(sp)\n", $2, intval << 2);
                     }
                     | LOAD NUM reg_with_name
                     {
@@ -175,6 +176,7 @@ id_with_name:       ID
                     {
                         $$ = cpy_string(tokenString);
                     }
+                    ;
 
 BINOP:              ADD
                     {
@@ -230,6 +232,7 @@ UNIOP:              NOT
                     {
                         op_type = OP_SUB;
                     }
+                    ;
 
 %%
 

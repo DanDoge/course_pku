@@ -9,7 +9,6 @@ int intval;
 
 %}
 
-digit       [0-9]
 ignore      [ \t\n\r]+
 
 %option yylineno
@@ -28,7 +27,7 @@ ignore      [ \t\n\r]+
 
 ">"     {return GE;}
 "<"     {return LE;}
-":"     {return COLON}
+":"     {return COLON;}
 "["     {return OPEN_SQUARE_BRAC;}
 "]"     {return CLOSE_SQUARE_BRAC;}
 
@@ -46,11 +45,11 @@ ignore      [ \t\n\r]+
 "store"     {return STORE;}
 "malloc"    {return MALLOC;}
 
-[l]digit+       {strcpy(tokenString, yytext); return LABEL;}
-digit+          {intval = atoi(yytext); return NUM;}
-[v]digit+       {strcpy(tokenString, yytext); return ID;}
-[s|t|a]digit+ | [x][0]  {strcpy(tokenString, yytext); return REG;}
-[f][_][a-zA-Z]+digit*   {strcpy(tokenString, yytext); return FUNC;}
+[l][0-9]+       {strcpy(tokenString, yytext); return LABEL;}
+[0-9]+          {intval = atoi(yytext); return NUM;}
+[v][0-9]+       {strcpy(tokenString, yytext); return ID;}
+[s|t|a][0-9]+|[x][0]  {strcpy(tokenString, yytext); return REG;}
+[f][_][a-zA-Z_][a-zA-Z0-9_]*   {strcpy(tokenString, yytext); return FUNC;}
 
 {ignore}    {}
 
