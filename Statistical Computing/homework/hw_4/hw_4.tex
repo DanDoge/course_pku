@@ -234,4 +234,66 @@ Already shown in Equation(1, 4, 5)
 \end{homeworkProblem}
 
 
+\begin{homeworkProblem}
+
+\textbf{(1)}
+
+The ELBO for logistic regression is
+
+\begin{equation}
+    \begin{aligned}
+        L(\mu, \sigma^2) &= E_{q} \log p(x, \beta) - \log q(\beta | \mu, \sigma^2) \\
+        \nabla_{\mu, \sigma^2} L &= \nabla_{\mu, \sigma^2} \int q(\beta, | \mu, \sigma^2) (\log p(x, \beta) - \log q(\beta | \mu, \sigma^2)) d\beta \\
+        &= \int q(\beta | \mu, \sigma^2) \nabla_{\mu, \sigma^2} \log q(\beta, | \mu, \sigma^2) (\log p(x, \beta) - \log q(\beta | \mu, \sigma^2)) \\
+        &- q(\beta | \mu, \sigma^2) \nabla_{\mu, \sigma^2} \log q(\beta, | \mu, \sigma^2) d\beta \\
+        &= E_{q} \nabla_{\mu, \sigma^2} \log q(\beta | \mu, \sigma^2) (\log p(x, \beta) - \log q(\beta | \mu, \sigma^2) - 1) \\
+        &= E_{q} \nabla_{\mu, \sigma^2} \log q(\beta | \mu, \sigma^2) (\log p(x, \beta) - \log q(\beta | \mu, \sigma^2)) \\
+        \log p(x, \beta) &= \sum_{i} y_{i} \log \sigma(\beta^{T} x_{i}) + (1 - y_{i}) \log (1 - \sigma(\beta^{T} x_{i})) + \log N(\beta | 0, 1) \\
+        \log q(\beta | \mu, \sigma^2) &= \log N(\beta | \mu, \sigma^2) \\
+    \end{aligned}
+\end{equation}
+
+Now we only need to solve for $\nabla_{\mu, \sigma^2} \log q(\beta | \mu, \sigma^2)$.
+
+\begin{equation}
+    \begin{aligned}
+        \log q(\beta | \mu, \sigma^2) &= \log N(\beta | \mu, \sigma^2) \\
+        &= -\frac{D\log \sigma^2}{2} - \frac{\|\beta - \mu\|_2}{2 \sigma^2} \\
+        \nabla_{\mu_{i}} \log q(\beta | \mu, \sigma^2) &= \frac{\beta_{i} - \mu_{i}}{\sigma^2} \\
+        \nabla_{\sigma^2} \log q(\beta | \mu, \sigma^2) &= -\frac{D}{2 \sigma^2} + \frac{\|\beta - \mu\|_2}{2(\sigma^2)^2} \\
+    \end{aligned}
+\end{equation}
+
+\textbf{(2)}
+
+We use $\nabla_{\mu, \sigma^2} \log q(\beta, | \mu, \sigma^2)$ to control variation, which is also adopted in BBVI paper.
+
+\textbf{(3)}
+
+We have
+
+\begin{equation}
+    \begin{aligned}
+        \nabla_{\mu, \sigma^2}L &= \nabla_{\mu, \sigma^2} E_{q} \log p(x, \beta) - \log q_{\mu, \sigma^2}(\beta) \\
+        &= E_{q(\epsilon)} \nabla_{\mu, \sigma^2} \log p(x, g_{\mu, \sigma^2}(\epsilon)) - \log q_{\mu, \sigma^2}(g_{\mu, \sigma^2}(\epsilon)) \\
+    \end{aligned}
+\end{equation}
+
+For logistic regression, we have (note that $\sigma$ is short for $\sigma((\mu + \sigma \epsilon)^{T} x_{i})$ except in $\mu + \sigma \epsilon$)
+
+\begin{equation}
+    \begin{aligned}
+        \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_i \log \sigma + (1 - y_i) \log (1 - \sigma) + \log N(\mu + \sigma \epsilon | 0, 1) \\
+        \nabla_{\mu} \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_i \frac{\sigma (1 - \sigma)}{\sigma} x_{i} + (1 - y_{i}) \frac{-\sigma (1 - \sigma)}{1 - \sigma} x_{i} - (\mu + \sigma \epsilon) \\
+        &= \sum_{i} y_{i} (1 - \sigma) x_{i} + (y_{i} - 1) \sigma x_{i} - (\mu + \sigma \epsilon) \\
+        \nabla_{\sigma^2} \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_{i} \frac{\sigma (1 - \sigma)}{\sigma} \epsilon x_{i} + (1 - y_{i}) \frac{- \sigma (1 - \sigma)}{1 - \sigma} \epsilon x_{i} - (\mu + \sigma \epsilon) \epsilon \\
+        &= \epsilon \sum_{i} y_{i} (1 - \sigma) x_{i} + (y_{i} - 1) \sigma x_{i} - (\mu + \sigma \epsilon) \\
+        \log q_{\mu, \sigma^2}(g_{\mu, \sigma^2}(\epsilon)) &= \log N(\mu + \sigma \epsilon | \mu, \sigma^2) \\
+        &= -\frac{D}{2}\log \sigma^{2} + C \\
+        \nabla_{\sigma^2} \log q_{\mu, \sigma^2}(g_{\mu, \sigma^2}(\epsilon)) &= -\frac{D}{2 \sigma^2} \\
+    \end{aligned}
+\end{equation}
+
+\end{homeworkProblem}
+
 \end{document}
