@@ -264,9 +264,19 @@ Now we only need to solve for $\nabla_{\mu, \sigma^2} \log q(\beta | \mu, \sigma
     \end{aligned}
 \end{equation}
 
+By substituting the above equation into (9), we derive the score function estimator for the gradient of ELBO w.r.t. $\mu$ and $\sigma$.
+
 \textbf{(2)}
 
 We use $\nabla_{\mu, \sigma^2} \log q(\beta, | \mu, \sigma^2)$ to control variation, which is also adopted in BBVI paper.
+
+As for implementation details, I used Adam for optimizing BBVI(vanilla bbvi), BBVI with control variates(bbvi cv) and BBVI with reparameterization trick(bbvi rt). The results in ELBO(log -ELBO) are shown below.
+
+\begin{figure}[!htb]
+    \centering
+  \includegraphics[width=0.5\linewidth]{./bbvi_full_batch_nll.png}
+  \caption{results of various BBVI}\label{fig:awesome_image3}
+\end{figure}
 
 \textbf{(3)}
 
@@ -286,13 +296,78 @@ For logistic regression, we have (note that $\sigma$ is short for $\sigma((\mu +
         \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_i \log \sigma + (1 - y_i) \log (1 - \sigma) + \log N(\mu + \sigma \epsilon | 0, 1) \\
         \nabla_{\mu} \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_i \frac{\sigma (1 - \sigma)}{\sigma} x_{i} + (1 - y_{i}) \frac{-\sigma (1 - \sigma)}{1 - \sigma} x_{i} - (\mu + \sigma \epsilon) \\
         &= \sum_{i} y_{i} (1 - \sigma) x_{i} + (y_{i} - 1) \sigma x_{i} - (\mu + \sigma \epsilon) \\
-        \nabla_{\sigma^2} \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \sum_{i} y_{i} \frac{\sigma (1 - \sigma)}{\sigma} \epsilon x_{i} + (1 - y_{i}) \frac{- \sigma (1 - \sigma)}{1 - \sigma} \epsilon x_{i} - (\mu + \sigma \epsilon) \epsilon \\
-        &= \epsilon \sum_{i} y_{i} (1 - \sigma) x_{i} + (y_{i} - 1) \sigma x_{i} - (\mu + \sigma \epsilon) \\
+        \nabla_{\sigma^2} \log p(x, g_{\mu, \sigma^2}(\epsilon)) &= \{\sum_{i} y_{i} \frac{\sigma (1 - \sigma)}{\sigma} \epsilon x_{i} + (1 - y_{i}) \frac{- \sigma (1 - \sigma)}{1 - \sigma} \epsilon x_{i} - (\mu + \sigma \epsilon) \epsilon \} \frac{d \sigma}{d (\sigma^2)} \\
+        &=  (\sum_{i} y_{i} (1 - \sigma) x_{i} + (y_{i} - 1) \sigma x_{i} - (\mu + \sigma \epsilon)) \frac{\epsilon}{2\sqrt{\sigma^2}} \\
         \log q_{\mu, \sigma^2}(g_{\mu, \sigma^2}(\epsilon)) &= \log N(\mu + \sigma \epsilon | \mu, \sigma^2) \\
         &= -\frac{D}{2}\log \sigma^{2} + C \\
         \nabla_{\sigma^2} \log q_{\mu, \sigma^2}(g_{\mu, \sigma^2}(\epsilon)) &= -\frac{D}{2 \sigma^2} \\
     \end{aligned}
 \end{equation}
+
+The results of BBVI with reparameterization trick is shown in \textbf{(2)}. Here we show the performance in minibatch senario.
+
+\begin{figure}[H]
+\minipage{0.33\textwidth}
+  \includegraphics[width=\linewidth]{./bbvi_comp_vanilla.png}
+  \caption{results of vanilla BBVI}\label{fig:awesome_image1}
+\endminipage\hfill
+\minipage{0.33\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_comp_cv.png}
+  \caption{results of BBVI cv}\label{fig:awesome_image3}
+\endminipage\hfill
+\minipage{0.33\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_comp_rt.png}
+  \caption{results of BBVI rt}\label{fig:awesome_image3}
+\endminipage
+\end{figure}
+
+The settings are: batch size being 1000, sample result every 10 iteration $i.e.$ one epoch. Notice that vanilla BBVI diverged after 500 epoch even in such a large batch size. For BBVI with control variates and reparameterization trick, we only show their ELBO after 100 epoch to show their performance after convergence.
+
+\textbf{(4)}
+
+We show the result w.r.t. $Var(\mu)$ and $Var(\sigma)$ below. Notice that in my implementation, we estimate $\nabla_{\log \sigma^2}$ instead. As batch size increases, BBVI+CV/RT reduces the variances more and the variance becomes more stable.
+
+
+\begin{figure}[H]
+\minipage{0.24\textwidth}
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_mu_4.png}
+  \caption{results of $\mu$, 4 samples}\label{fig:awesome_image1}
+\endminipage\hfill
+\minipage{0.24\textwidth}
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_mu_32.png}
+  \caption{results of $\mu$, 32 samples}\label{fig:awesome_image1}
+\endminipage\hfill
+\minipage{0.24\textwidth}
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_mu_64.png}
+  \caption{results of $\mu$, 64 samples}\label{fig:awesome_image1}
+\endminipage\hfill
+\minipage{0.24\textwidth}
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_mu_128.png}
+  \caption{results of $\mu$, 128 samples}\label{fig:awesome_image1}
+\endminipage
+\end{figure}
+
+\begin{figure}[H]
+\minipage{0.24\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_sigma_4.png}
+  \caption{results of $\sigma$, 4 samples}\label{fig:awesome_image3}
+\endminipage \hfill
+\minipage{0.24\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_sigma_32.png}
+  \caption{results of $\sigma$, 32 samples}\label{fig:awesome_image3}
+\endminipage \hfill
+\minipage{0.24\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_sigma_64.png}
+  \caption{results of $\sigma$, 64 samples}\label{fig:awesome_image3}
+\endminipage \hfill
+\minipage{0.24\textwidth}%
+  \includegraphics[width=\linewidth]{./bbvi_full_batch_var_sigma_128.png}
+  \caption{results of $\sigma$, 128 samples}\label{fig:awesome_image3}
+\endminipage
+\end{figure}
+
+\textbf{(6)}
+
 
 \end{homeworkProblem}
 
