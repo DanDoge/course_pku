@@ -214,10 +214,10 @@ We take the relevant terms w.r.t. $\phi_{d, n, i}$ with a Lagrange multiplier $\
 and set it to zero, we have
 
 \begin{equation}
-    \phi_{d, n, i} \propto \exp(\Psi(\gamma_{d, i}) - \Psi(\sum_{j} \gamma_{d, j}) + \sum_{j} w_{d, n, j} (\Psi(\lambda_{k, j}) - \Psi(\sum_{k} \lambda_{i, k})))
+    \phi_{d, n, i} \propto \exp(\Psi(\gamma_{d, i}) - \Psi(\sum_{j} \gamma_{d, j}) + \sum_{j} w_{d, n, j} (\Psi(\lambda_{k, j}) - \Psi(\sum_{k} \lambda_{i, k}))),
 \end{equation}
 
-Similarly, we have
+the $\Psi(\sum_{j} \gamma_{d, j})$ term could be removed, since it is constant for fixed $d$, thus does not matter after normalizing $\phi$. Similarly, we have
 
 \begin{equation}
     \begin{aligned}
@@ -229,6 +229,20 @@ Similarly, we have
 \textbf{(2)}
 
 Already shown in Equation(1, 4, 5)
+
+\textbf{(3), (4)}
+
+We show below the negative ELBO as a function of epoch and batch size
+\begin{itemize}
+    \item Batched LDA's performance is greatly influenced by initialization, while full-batched LDA is not
+    \item full batched LDA outperforms batched version consistently, almost regradless of initialization
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+  \includegraphics[width=0.4\linewidth]{./NLL_LDA.png}
+  \caption{results of ELBO}\label{fig:awesome_image3}
+\end{figure}
 
 
 \end{homeworkProblem}
@@ -368,6 +382,11 @@ We show the result w.r.t. $Var(\mu)$ and $Var(\sigma)$ below. Notice that in my 
 
 \textbf{(6)}
 
+NOTE: no better results made!
+\begin{itemize}
+    \item replace $\sigma$ with $\sigma_1, \sigma_2$ theortically should perform no worse than a single $\sigma$, but in practice not(ELBO drops to ~-1460)
+    \item replace Gaussian prior by t-distribution or Laplace distribution does not work neither(ELBO drops to ~-1480)
+\end{itemize}
 
 \end{homeworkProblem}
 

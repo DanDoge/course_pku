@@ -48,15 +48,16 @@ single_line:        id_with_name ASN NUM
                         local_stack_size = (intval / 4 + 1) << 4;
                         printf(".text\n");
                         printf(".align 2\n");
-                        printf(".global %s\n", tokenString);
-                        printf(".type %s,@function\n", tokenString);
-                        printf("%s:\n", tokenString);
+                        printf(".global %s\n", tokenString + 2);
+                        printf(".type %s,@function\n", tokenString + 2);
+                        printf("%s:\n", tokenString + 2);
                         printf("add sp,sp,%d\n", -local_stack_size);
                         printf("sw ra, %d(sp)\n", local_stack_size - 4);
                     }
                     | END FUNC
                     {
-                        printf(".size %s,.-%s\n", tokenString, tokenString);
+                        printf(".size %s,.-%s\n", tokenString + 2, tokenString + 2);
+                        local_stack_size = 0;
                     }
                     | reg_with_name ASN reg_with_name BINOP reg_with_name
                     {
@@ -134,7 +135,7 @@ single_line:        id_with_name ASN NUM
                     }
                     | CALL FUNC
                     {
-                        printf("call %s\n", tokenString);
+                        printf("call %s\n", tokenString+2);
                     }
                     | STORE reg_with_name NUM
                     {

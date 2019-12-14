@@ -180,7 +180,7 @@ def lda_batched(batch_size):
         print(elbo_per_point)
     return elbo_list
 
-for batch_size in [100, 10, 1]:
+for batch_size in [1]:
     elbo_list = lda_batched(batch_size)
     import pickle
     with open("lda_elbo_batch_" + str(batch_size), "wb") as f:
