@@ -3,6 +3,12 @@
  *
  * project for course "practice of DSA"
  *
+ * change log:
+ *       12/17 -- OK 155' 80s
+ *       12/23 -- uncovered implemented as a stack
+ *                155' 12s(cutoff=300)
+ *                155' 21s(cutoff=500)
+ *                155' 30s(cutoff=700)
  */
 
 /* header files begin here */
@@ -53,9 +59,38 @@ struct Edge{
     }
 }edge[MAX_NUME];
 
-list<int> uncovered;        // uncovered edges, note that in Cai's implementation
-                            // both covered and uncovered edges are recorded
+int uncovered[MAX_NUME];        // stack
+int uncovered_top = 0;          // first empty slot
+int idx_in_uncovered[MAX_NUME]; // literal meaning
+
 list<int> v_to_e[MAX_NUMV]; // list of edges adjacent to vertex v
+
+
+/*cover an edge
+ * param: int e  idx of edge covered
+ * return: void
+ * last changed: Huang Daoji 12/23 10:39
+ */
+void cover_edge(int e){
+    int last_edge = uncovered[--uncovered_top];
+    int e_idx = idx_in_uncovered[e];
+    uncovered[e_idx] = last_edge;
+    idx_in_uncovered[last_edge] = e_idx;
+
+    return ;
+}
+
+/*uncover an edge
+ * param: int e  idx of edge uncovered
+ * return: void
+ * last changed: Huang Daoji 10:42
+ */
+void uncover_edge(int e){
+    idx_in_uncovered[e] = uncovered_top;
+    uncovered[uncovered_top++] = e;
+
+    return ;
+}
 
 /*add one vertex to the candidate solution
  * param: int v   No. of vertex to be added
@@ -75,7 +110,8 @@ void add_one_vertex(int v){
                 // an uncovered edge found!
                 dscore[another_end] -= edge_weights[idx_edge];
                 conf_change[another_end] = 1;
-                uncovered.remove(idx_edge);
+                //uncovered.remove(idx_edge);
+                cover_edge(idx_edge);
             }else{
                 // since it's covered by vertex v now
                 dscore[another_end] += edge_weights[idx_edge];
@@ -104,7 +140,8 @@ void remove_one_vertex(int v){
                 // edge becomes uncovered
                 dscore[another_end] += edge_weights[idx_edge];
                 conf_change[another_end] = 1;
-                uncovered.push_back(idx_edge);
+                //uncovered.push_back(idx_edge);
+                uncover_edge(idx_edge);
             }else{
                 // since it's now covered by vertex another_end from vertex v
                 dscore[another_end] -= edge_weights[idx_edge];
@@ -149,16 +186,15 @@ void forget_edge_weight(){
  * last changed: Huang Daoji 12/16 19:41
  */
 void update_edge_weight(){
-    for(list<int>::iterator it = uncovered.begin();
-        it != uncovered.end();
-        it++){
-            int idx_edge = *it;
-            edge_weights[idx_edge] += 1;
-            dscore[edge[idx_edge].from] += 1;
-            dscore[edge[idx_edge].to] += 1;
-        }
+    for(int i = 0; i < uncovered_top; i += 1){
+        int idx_edge = uncovered[i];
+        edge_weights[idx_edge] += 1;
+        dscore[edge[idx_edge].from] += 1;
+        dscore[edge[idx_edge].to] += 1;
+    }
 
-    sum_weights += uncovered.size();
+    //sum_weights += uncovered.size();
+    sum_weights += uncovered_top;
 
     if(sum_weights >= threshold * num_e){
         forget_edge_weight();
@@ -218,7 +254,8 @@ void init_global_var(){
 	memset(graph, 0, sizeof(graph));
     memset(edge, 0, sizeof(edge));
     memset(conf_change, 0, sizeof(conf_change));
-    uncovered.clear();
+    //uncovered.clear();
+    uncovered_top = 0;
     for(int i = 0; i < num_v; i += 1){
         v_to_e[i].clear();
     }
@@ -242,9 +279,11 @@ void init_local_var(){
     	edge_weights[i] = 1; //WTF?
         dscore[edge[i].from] += 1;
         dscore[edge[i].to] += 1;
-        uncovered.push_back(i);
+        //uncovered.push_back(i);
+        uncover_edge(i);
     }
-    while(!uncovered.empty()){
+    //while(!uncovered.empty()){
+    while(uncovered_top != 0){
         int max_dscore_idx[MAX_NUMV] = {0};
         int max_vcnt = 0;
         int max_dscore = -INF;
@@ -279,7 +318,8 @@ void NuMVC(){
     init_local_var();
     int num_step = 0;
     while(num_step < cutoff){
-        if(uncovered.empty()){
+        //if(uncovered.empty()){
+        if(uncovered_top == 0){
             int c_size = std::accumulate(v_in_c, v_in_c + num_v, 0);
             int best_c_size = std::accumulate(best_v_in_c, best_v_in_c + num_v, 0);
             if(c_size == 1){ // only for openjudge test sample
@@ -309,13 +349,9 @@ void NuMVC(){
         // remove one vertex w/ highest score, add a random one
         update_best_dscore();
         remove_one_vertex(max_best_dscore_idx);
-        int idx_edge = rand() % uncovered.size();
-        int idx_edge_chosen = -1;
-        list<int>::iterator it = uncovered.begin();
-        for(int i = 0; i < idx_edge; i += 1){
-            it++;
-        }
-        idx_edge_chosen = *it;
+        //int idx_edge = rand() % uncovered.size();
+        int idx_edge = rand() % uncovered_top;
+        int idx_edge_chosen = uncovered[idx_edge];
         int from = edge[idx_edge_chosen].from;
         int to = edge[idx_edge_chosen].to;
         int idx_to_add = -1;
@@ -371,7 +407,7 @@ int main(int argc, char const *argv[]) {
         }
         num_e = idx_edge;
         threshold = int(0.5 * num_v);
-        cutoff = num_v * 300;
+        cutoff = num_v * 700;
         NuMVC();
         int res_cnt = 0;
         int res[MAX_NUMV];

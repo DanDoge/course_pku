@@ -49,7 +49,7 @@ ignore      [ \r\t\n]+
 [l][0-9]+          {strcpy(tokenString, yytext); return LABEL;}
 {number}            {intval = atoi(yytext); return NUM;}
 [a-zA-Z]+[0-9]*     {strcpy(tokenString, yytext); return ID;}
-[a-zA-Z|_]+[0-9]*    {strcpy(tokenString, yytext); return FUNC;}
+[a-zA-Z|_]+[a-zA-Z0-9]*    {strcpy(tokenString, yytext); return FUNC;}
 {ignore}              {}
 
 %%
