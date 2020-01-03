@@ -29,6 +29,9 @@ comment     "//"[^\n]*
 "main"      {return MAIN;}
 "return"    {return RETURN;}
 
+"for"       {return FOR;}
+"do"        {return DO;}
+
 
 "+"         {return ADD;}
 "-"         {return SUB;}

@@ -71,6 +71,7 @@ extern int intval;
 %}
 
 %token IF ELSE WHILE INT MAIN RETURN
+%token FOR DO
 %token ADD SUB MUL DIV MOD
 %token AND OR NOT
 %token ASN LE GE EQ NEQ
@@ -169,6 +170,25 @@ def_var :  INT id_with_name SEMICOLON
                 $$->arr_size = 0;
             }
             | INT id_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC SEMICOLON
+            {
+                $$ = new_node();
+                $$->node_type = NODE_STMT;
+                $$->stmt_type = STMT_DEF_VAR;
+                $$->name = $2->name;
+                $$->arr_size = (intval) << 2;
+            }
+            ;
+
+
+def_var_wo_colon :  INT id_with_name
+            {
+                $$ = new_node();
+                $$->node_type = NODE_STMT;
+                $$->stmt_type = STMT_DEF_VAR;
+                $$->name = $2->name;
+                $$->arr_size = 0;
+            }
+            | INT id_with_name OPEN_SQUARE_BRAC NUM CLOSE_SQUARE_BRAC
             {
                 $$ = new_node();
                 $$->node_type = NODE_STMT;
@@ -332,12 +352,30 @@ stmt :           OPEN_CURLY_BRAC stmt_list CLOSE_CURLY_BRAC
                     $$->children[1] = $5;
                     $$->children[2] = $7;
                 }
+                | FOR OPEN_ROUND_BRAC stmt_wo_colon SEMICOLON exp SEMICOLON stmt_wo_colon CLOSE_ROUND_BRAC stmt
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_FOR;
+                    $$->children[0] = $3;
+                    $$->children[1] = $5;
+                    $$->children[2] = $7;
+                    $$->children[3] = $9;
+                }
                 | WHILE OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC stmt
                 {
                     $$ = new_node();
                     $$->node_type = NODE_STMT;
                     $$->stmt_type = STMT_WHILE;
                     $$->children[0] = $3;
+                    $$->children[1] = $5;
+                }
+                | DO stmt WHILE OPEN_ROUND_BRAC exp CLOSE_ROUND_BRAC SEMICOLON
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_DOWHILE;
+                    $$->children[0] = $2;
                     $$->children[1] = $5;
                 }
                 | id_with_name ASN exp SEMICOLON
@@ -368,6 +406,30 @@ stmt :           OPEN_CURLY_BRAC stmt_list CLOSE_CURLY_BRAC
                     $$->stmt_type = STMT_RETURN;
                     $$->children[0] = $2;
                 }
+
+stmt_wo_colon:  id_with_name ASN exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_IDASN;
+                    $$->name = $1->name;
+                    $$->children[0] = $3;
+                }
+                | id_with_name OPEN_SQUARE_BRAC exp CLOSE_SQUARE_BRAC ASN exp
+                {
+                    $$ = new_node();
+                    $$->node_type = NODE_STMT;
+                    $$->stmt_type = STMT_ARRASN;
+                    $$->name = $1->name;
+                    $$->children[0] = $3;
+                    $$->children[1] = $6;
+                }
+                | def_var_wo_colon
+                {
+                    $$ = $1;
+                }
+                |
+                ;
 
 exp :           exp ADD exp
                 {
@@ -771,6 +833,30 @@ void translation(node* root, int depth){
             translation(root->children[0], depth);
             printf("if t%d == 0 goto l%d\n", root->children[0]->var_idx_eeyore, root->lbl_idx_eeyore + 1);
             translation(root->children[1], depth + 1);
+            printf("goto l%d\n", root->lbl_idx_eeyore);
+            printf("l%d:\n", root->lbl_idx_eeyore + 1);
+            var_table_idx = idx_start;
+        }
+        if(root->stmt_type == STMT_DOWHILE){
+            int idx_start = var_table_idx;
+            root->lbl_idx_eeyore = lblcnt;
+            lblcnt += 1;
+            printf("l%d:\n", root->lbl_idx_eeyore);
+            translation(root->children[0], depth + 1);
+            translation(root->children[1], depth + 1);
+            printf("if t%d != 0 goto l%d\n", root->children[1]->var_idx_eeyore, root->lbl_idx_eeyore);
+            var_table_idx = idx_start;
+        }
+        if(root->stmt_type == STMT_FOR){
+            int idx_start = var_table_idx;
+            root->lbl_idx_eeyore = lblcnt;
+            lblcnt += 2;
+            translation(root->children[0], depth + 1);
+            printf("l%d:\n", root->lbl_idx_eeyore);
+            translation(root->children[1], depth + 1);
+            printf("if t%d == 0 goto l%d\n", root->children[1]->var_idx_eeyore, root->lbl_idx_eeyore + 1);
+            translation(root->children[3], depth + 1);
+            translation(root->children[2], depth + 1);
             printf("goto l%d\n", root->lbl_idx_eeyore);
             printf("l%d:\n", root->lbl_idx_eeyore + 1);
             var_table_idx = idx_start;

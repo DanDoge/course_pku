@@ -51,8 +51,16 @@ single_line:        id_with_name ASN NUM
                         printf(".global %s\n", tokenString + 2);
                         printf(".type %s,@function\n", tokenString + 2);
                         printf("%s:\n", tokenString + 2);
-                        printf("add sp,sp,%d\n", -local_stack_size);
-                        printf("sw ra, %d(sp)\n", local_stack_size - 4);
+                        if(local_stack_size > 2040){
+                            printf("li s11,%d\n", -local_stack_size);
+                            printf("add sp,sp,s11\n");
+                            printf("li s11,%d\n", local_stack_size - 4);
+                            printf("add s11,s11,sp\n");
+                            printf("sw ra,0(s11)\n");
+                        }else{
+                            printf("add sp,sp,%d\n", -local_stack_size);
+                            printf("sw ra, %d(sp)\n", local_stack_size - 4);
+                        }
                     }
                     | END FUNC
                     {
@@ -139,11 +147,23 @@ single_line:        id_with_name ASN NUM
                     }
                     | STORE reg_with_name NUM
                     {
-                        printf("sw %s,%d(sp)\n", $2, intval << 2);
+                        if((intval << 2) >= 2040 || (intval << 2) <= -2040){
+                            printf("li s11,%d\n", intval << 2);
+                            printf("add s11,s11,sp\n");
+                            printf("sw %s,0(s11)\n", $2);
+                        }else{
+                            printf("sw %s,%d(sp)\n", $2, intval << 2);
+                        }
                     }
                     | LOAD NUM reg_with_name
                     {
-                        printf("lw %s,%d(sp)\n", $3, intval << 2);
+                        if((intval << 2) >= 2040 || (intval << 2) <= -2040){
+                            printf("li s11,%d\n", intval << 2);
+                            printf("add s11,s11,sp\n");
+                            printf("lw %s,0(s11)\n", $3);
+                        }else{
+                            printf("lw %s,%d(sp)\n", $3, intval << 2);
+                        }
                     }
                     | LOAD id_with_name reg_with_name
                     {
@@ -161,8 +181,16 @@ single_line:        id_with_name ASN NUM
                     }
                     | RETURN
                     {
-                        printf("lw ra,%d(sp)\n", local_stack_size - 4);
-                        printf("add sp,sp,%d\n", local_stack_size);
+                        if(local_stack_size > 2040){
+                            printf("li s11,%d\n", local_stack_size - 4);
+                            printf("add s11,s11,sp\n");
+                            printf("lw ra,0(s11)\n");
+                            printf("li s11,%d\n", local_stack_size);
+                            printf("add sp,sp,s11\n");
+                        }else{
+                            printf("lw ra,%d(sp)\n", local_stack_size - 4);
+                            printf("add sp,sp,%d\n", local_stack_size);
+                        }
                         printf("jr ra\n");
                     }
                     ;
