@@ -202,7 +202,7 @@ if t3 != 0 goto l2
 
 ### EEyore2Tigger
 
-这一部分的报告包括Eeyore到Tigger的程序的功能，拓展。
+这一部分的报告包括Eeyore到Tigger的程序的功能，拓展。**提交的代码有两份.y文件，下面描述的是eeyore_lin_95.y实现的算法，计测使用了不分配寄存器的eeyore_no_98.y刷分。**
 
 这一部分的代码能够将单个符合Eeyore的BNF文法的程序转换成符合Tigger文法的程序。除了下面列出来的功能，其他的数据结构和实现方法和翻译Minic类似。
 
@@ -210,7 +210,6 @@ if t3 != 0 goto l2
 
 - 简单优化：常量表达式消除
 - 线性扫描寄存器分配算法
-    - 在服务器上有几个不同的.y文件备份，线性扫描算法在文件名包含"lin"的文件中
 
 #### 常量表达式消除
 
@@ -254,17 +253,50 @@ int get_result(int a, int b, Op_Type op){
 ## 各阶段整合
 
 下面是一些整合各个阶段的编译器的方法
-- bash脚本：第一个参数为输入文件名，第二个为输出文件名
+- Makefile脚本：第一个参数为输入文件名，第二个为输出文件名
 
 ```bash
-eeyore < $0 > tmp.eyr
-tigger < tmp.eyr > tmp.tgr
-riscv < tmp.tgr > $1
-rm ./tmp.eyr
-rm ./tmp.tgr
+INFILE=INPUT
+OUTFILE=OUTPUT
+
+compile: 
+	./eeyore < ${INPUT} > tmp.eyr
+	./tigger < tmp.eyr > tmp.tgr
+	./riscv64 < tmp.tgr > ${OUTPUT}
+	rm ./tmp.eyr
+	rm ./tmp.tgr
+
+build: eeyore tigger riscv64
+
+eeyore: minic.l minic.y
+	bison -d minic.y
+	flex -o minic.lex.c minic.l
+	gcc -o eeyore minic.tab.c minic.lex.c
+
+tigger: eeyore.l eeyore.y
+	bison -d eeyore.y
+	flex -o eeyore.lex.c eeyore.l
+	gcc -o tigger eeyore.tab.c eeyore.lex.c
+
+riscv64: tigger.l tigger.y
+	bison -d tigger.y
+	flex -o tigger.lex.c tigger.l
+	gcc -o riscv64 tigger.tab.c tigger.lex.c
+
+clean: 
+	rm ./eeyore ./tigger ./riscv64
+	rm ./*.lex.c ./*.tab.*
 ```
 
-- 可执行文件包装上述脚本
+编译源代码和编译文件的过程形如
+
+```
+make build
+make compile INPUT=foo.c OUTPUT=foo.s
+make clean
+```
+
+- 可执行文件包装上述脚本，例如使用
 
 ```c++
 system(/* bash script */);
@@ -398,4 +430,4 @@ add	    s1,a0,s1
 
 这个学期中我也受任务驱动重温了编译原理乃至ICS的内容，也因为需要分配寄存器去读了线性分配寄存器算法的原文。这是很有收获的一个学期，即便对于专业方向和编译无关的我来说，在这个学期得到的工程经验将是能够应用到未来任何需要编写代码的场景的。单人维护数千行代码，设计数据结构，差错，重构和优化的经验都是本科以来任务最艰巨也是最有成就感的。
 
-在这里我要再次感谢刘老师一个学期以来详尽负责的教学。在学习曲线最陡峭的地方，老师和每一个人面谈解决实习中遇到的问题。同样还需要感谢尽责细心的助教师兄/师姐，他们在面测时详细的检查代码，讨论我设计的数据结构可行性，提出改进的方案，在课下也在线不厌其烦的解决繁杂的问题。
+在这里我要再次感谢刘老师一个学期以来详尽负责的教学。在学习曲线最陡峭的地方，老师和每一个人面谈解决实习中遇到的问题。同样还需要感谢尽责细心的助教师兄/师姐，他们在面测时详细的检查代码，讨论我设计的数据结构可行性，提出改进的方案，在课下也在线不厌其烦的解决繁杂的问题。 
