@@ -1,0 +1,66 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{multicol}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{algpseudocode}
+\usetikzlibrary{automata,positioning}
+
+\geometry{left = 2cm, right = 2cm, top = 2cm, bottom = 2cm}
+
+\author{黄道吉}
+\title{滑动窗口协议实验报告}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+滑动窗口协议是链路层数据传输的重要协议。这次实验要求在模拟的数据链路层环境中，实现下列三个协议中发送端的功能
+\begin{itemize}
+    \item 停等协议
+    \item 回退N滑动窗口协议
+    \item 选择重传协议
+\end{itemize}
+
+\section{数据结构}
+
+除了提供的帧和帧头之外，我们另外维护两个数据结构分别用来存储 1)未发送的数据 和 2)已经发送(可能需要重发的数据)。其中未发送的数据只需要能够保证先进先出，用queue实现，已发送的数据在全部重发时需要一一迭代访问，最好实现成deque。两个数据结构的用法在协议实现部分有详细的说明。
+
+\section{协议实现}
+
+\subsection{停等协议}
+
+按照停等协议的要求，每次只能发送一个帧，并保存刚刚发送的帧。因此
+\begin{itemize}
+    \item 当遇到超时信号时，重传刚刚发送的帧
+    \item 当遇到发送信号时，将需要发送的帧入队。如果已发送的队列为空，即是可以发送，则从待发送队列头取一帧发送。
+    \item 当收到接受信号时，清空已发送队列。如果待发送队列不空，则可以再发送一帧。
+\end{itemize}
+
+\subsection{回退N滑动窗口协议}
+
+按照回退N滑动窗口协议的要求，维护一个最大长度为N的已发送队列。因此
+\begin{itemize}
+    \item 当遇到超时信号时，重传所有已发送的帧
+    \item 当遇到发送信号时，将需要发送的帧入队。如果已发送的队列长度小于N，即是可以发送，则从待发送队列头取一帧发送，直到已发送N帧。
+    \item 当收到接受信号时，清空序号不等于接受帧序号的帧。如果待发送队列不空，则可以再发送帧，直到已发送N帧。
+\end{itemize}
+
+\subsection{选择重传协议}
+
+按照选择重传协议的要求，维护一个最大长度为N的已发送队列。因此
+\begin{itemize}
+    \item 当遇到超时信号时，重传需要重传的帧
+    \item 当遇到发送信号时，将需要发送的帧入队。如果已发送的队列长度小于N，即是可以发送，则从待发送队列头取一帧发送，直到已发送N帧。
+    \item 当收到接受信号时，如果是成功接收，则清空序号不等于接受帧序号的帧。如果待发送队列不空，则可以再发送帧，直到已发送N帧；如果是未成功接受，按照上课说的解决方法，重传所有帧
+\end{itemize}
+
+\end{document}
