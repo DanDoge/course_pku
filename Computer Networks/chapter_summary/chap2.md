@@ -31,4 +31,26 @@ water absorbs short microwaves well
 
 satellites: inherently broadcast media
 
-TODO: 2.5
+digital modulation: converting between bits nad signals
+- non-return-to-zero(inverted)
+- manchester encoding: clock XOR data
+
+4B/5B: no more than three consecutive zeros
+
+scrambler: XORing data with pseudorandom sequence before transmission
+
+QAM: better solution for error containment
+- map bits to symbols s.t. adjacent symbols differ in only one position
+
+CDMA: assume all chips sync. at the receiver, not approx. true in cellular networks
+
+telephone system: local loops->trunks->switching offices
+- local loops: analog information, narrow bandwith, attenuation and distortion of signals
+- modem: converts between digital bits and analog signal
+
+fiber to the home
+- houses cannot hear each other-> request a time slot in the end office
+
+FDM: requires analog circuitry cannot done by a computer, whereas TDM can
+
+## TODO 2.7
