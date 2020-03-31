@@ -56,3 +56,41 @@ VLAN
     - the switch and the router are combined together
 - VLAN truck
     - connect two switches using port shared by all VLANs
+
+wireless network
+- wireless hosts
+- wireless links
+- base station: responsible fr sending and receiving data to/from a wireless host
+    - cell towers, access points
+    - connected to larger networks
+- network infrastructure
+
+no changes needed at/above network layer
+- diff. btn. wired and wireless network: link layer
+    - decreasing signal strength, interference from other sources, multipah propagation
+    - more common bit errors: CRC error detection codes, reliable data-transfer protocols
+- BER, SNR, modulation scheme
+- hidden terminal problem
+- CDMA: value received being the sum of all senders
+    - carefully chosen CDMA codes
+    - assume signal strength from all senders are the same
+
+802.11
+- a/b/g
+- basic service set
+- ad hoc network
+- service set identifier
+- beacon frames: SSID and MAC address
+    - passive/active scanning(second request/response needed)
+- CSMA/CA
+    - cannot do CD in wireless network
+    - transmit a whole frame once transmission begins
+    - send back ack, if received frame passes CRC
+    - random backoff value: dec. only when channel is free
+    - RTS/CTS
+- frame
+    - address1: mac of wireless station receives the frame
+    - address2: mac of wireless station sends the frame
+    - address3: mac of router
+    - since router is not aware of AP
+- mobility in the same IP subnet: disassociate/associate with AP at link layer level, TCP connections maintained
