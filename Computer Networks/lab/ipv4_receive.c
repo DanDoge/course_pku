@@ -32,7 +32,7 @@ int stud_ip_recv(char * pBuffer, unsigned short length){
     }
 
     unsigned int destination_address = ntohl(*(unsigned int* )(pBuffer + 16)); // might be wrong
-    if(destination_address != getIpv4Address() || destination_address != (~0)){
+    if(destination_address != getIpv4Address() && destination_address != (~0)){
         // if it is necessray to consider
         //     - localhost address: 127.0.0.0/8
         //     - link-local address: 169.254.0.0/16
