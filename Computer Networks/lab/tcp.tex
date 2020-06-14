@@ -1,0 +1,322 @@
+\documentclass{article}
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+
+\usepackage{listings}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{multicol}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{algpseudocode}
+\usetikzlibrary{automata,positioning}
+
+\geometry{left = 2cm, right = 2cm, top = 2cm, bottom = 2cm}
+
+\author{黄道吉}
+\title{tcp协议实验报告}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+传输层协议是互联网的核心协议。这次实验要求实现TCP协议中收发数据的部分，并要求实现客户端的socket接口。这次实验要求的并不是一个完整的而是简化了的TCP协议，即只要求实现客户端的部分，并且发送和接受窗口都设置为1。
+
+\section{数据结构}
+
+这次实验的中心是设计TCB的结构。在我的实现中，TCB被设置为一个包含源/目的地址和端口，以及TCP协议必须的seq和ack的struct。为了实现TCP状态转换的功能，还需要一个状态域，它的类型是TCP\_State，是一个枚举的结构，列出了它所有的可能取值。TCB在初始化时需要为它设置独特的套接字编号，seqnum和端口，并将状态初始化为关闭连接。
+
+为保存连接状态，维护一个从套接字编号到的映射，这样socket函数可以从这个映射中找到对应的tcb，读取需要的信息。为方便实现的tcp各函数能获得socket函数使用的TCB，设置一个全局变量tcb\_cache，让tcp函数也能通过这个全局变量获取的信息（如果允许的话也可以在tcp函数中加一个参数，传入TCB的指针）。
+
+\section{实现细节}
+
+本节介绍我的实现的细节和只参考手册和查阅资料没有解决的问题。
+
+\subsection{函数逻辑}
+
+\paragraph{stud\_tcp\_input} 这个函数首先计算checksum，接收正确的包。之后检查序列号，不对的调用 tcp\_DiscardPkt 丢包。在计算了新的序列号和ack之后，更新状态机的状态。
+
+\paragraph{stud\_tcp\_output} 这个函数首先构造tcp头，计算checksum，之后发包、更新状态。
+
+\paragraph{stud\_tcp\_socket} 新建一个空的tcb，加入表中，返回套接字号。
+
+\paragraph{stud\_tcp\_connect} 按照参数确定tcb各个域的信息，发送连接报文，接受返回的报文，更新状态。
+
+\paragraph{stud\_tcp\_send} 找到套接字号对应的tcb，发送报文，等待确认。
+
+\paragraph{stud\_tcp\_recv} 找到tcb，等待接受报文，发送确认报文。
+
+\paragraph{stud\_tcp\_close} 发送分手报文，等待对端收到和确认分手报文，再回传确认报文。
+
+
+
+
+
+
+
+
+
+\subsection{残存问题}
+
+实现的过程中仍然没有解决的问题有
+\begin{itemize}
+    \item 手册中有提到 tcp\_sendReport 函数，但是没有对应的api介绍，因此实现中没有写进这个函数。
+    \item 手册没有提到checksum出错的报文需不需要调用 tcp\_DiscardPkt 函数报错。
+    \item stud\_tcp\_input 函数中发送报文的端口号暂且使用全局的端口号，如果有上机测试的结果，可能需要改成tcb当中的端口。
+    \item sockaddr\_in 结构似乎没有详细介绍它的各个域是什么
+    \item 手册中要求 stud\_tcp\_recv 用 sendIpPkt 发送ack包，不清楚网络层函数如何发送传输层的包，我的实现使用了 stud\_tcp\_output 。
+\end{itemize}
+
+
+
+\section{代码实现}
+
+
+\lstset{language=C++,
+%backgroundcolor=\color{write},
+basicstyle=\footnotesize,
+keywordstyle=\color{blue}\bfseries,
+commentstyle=\color{gray},
+}
+
+\lstset{breaklines}
+\lstset{extendedchars=false}
+
+\begin{lstlisting}
+
+/* global variables */
+int gSrcPort = 2005;
+int gDstPort = 2006;
+int gSeqNum = 0;
+int gAckNum = 0;
+int global_socket_number = 0;
+
+/* states for TCP automata */
+typedef enum{TCP_closed, TCP_synsent, TCP_established, TCP_finwait1, TCP_finwait2, TCP_timewait} TCP_State;
+
+/* APIs */
+void tcp_DiscardPkt(char * pBuffer, int type);
+void tcp_sendIpPkt(unsigned char* pData, uint16 len, unsigned int srcAddr,
+unsigned int dstAddr, uint8 ttl);
+int waitIpPacket(char *pBuffer, int timeout);
+UINT32 getIpv4Address( );
+UINT32 getServerIpv4Address( );
+
+struct TCB{
+    unsigned int source_address;
+    unsigned int destination_address;
+    unsigned int source_port;
+    unsigned int destination_port;
+    unsigned int seq;
+    unsigned int ack;
+    unsigned int socket_number;
+    TCP_State state;
+
+    TCB(){
+        socket_number = global_socket_number++;
+        seq_number = gSeqNum++;
+        state = TCP_closed;
+        srcPort = gSrcPort++;
+    }
+}
+
+TCB* tcb_cache; // tmp tcb to pass some info from socket functions to tcp functions
+map<int, TCB> socket2tcb;
+
+int stud_tcp_input(char *pBuff, unsigned short len, unsigned int srcAddr,
+unsigned int dstAddr){
+    // where is document for tcp_sendReport function?
+    /* check checksum */
+    unsigned int header_checksum = 0;
+    for(int i = 0; i < len + 20; i += 2){
+        header_checksum += (pBuff[i] << 8) + pBuff[i + 1];
+    }
+    while(header_checksum >> 16){
+        header_checksum == (header_checksum >> 16) + (header_checksum & 0xFFFF);
+    }
+    header_checksum = ~header_checksum;
+    if(header_checksum != 0){
+        // or call tcp_DiscardPkt()?
+        return -1;
+    }
+    /* convert byte order: ...of what? */
+
+    /* check seq number */
+    unsigned int ack_number = *(int* )(pBuff + 8);
+    if(ack_number != tcb->seq){
+        tcp_DiscardPkt(pBuff, STUD_TCP_TEST_SEQNO_ERROR);
+        return -1;
+    }
+
+    /* automata, update state? */
+    unsigned int seq_number = *(int* )(pBuff + 4);
+    tcb_cache->ack = seq_number + 1;
+    tcb_cache->seq = ack_number;
+
+    if(tcb_cache->state == TCP_synsent){
+        /* what are src and dst port? */
+        tcb_cache->state = TCP_established;
+        stud_tcp_output(NULL, 0, PACKET_TYPE_ACK, gSrcPort, gDstPort, getIpv4Address(), getServerIpv4Address());
+    }else if(tcb_cache->state == TCP_finwait1){
+        tcb_cache->state = TCP_finwait2;
+    }else if(tcb_cache->state == TCP_finwait2){
+        tcb_cache->state = TCP_timewait;
+        stud_tcp_output(NULL, 0, PACKET_TYPE_ACK, gSrcPort, gDstPort, getIpv4Address(), getServerIpv4Address());
+    }
+    return 0;
+}
+
+void stud_tcp_output(char *pData, unsigned short len, unsigned char flag,
+unsigned short srcPort, unsigned short dstPort, unsigned int srcAddr, unsigned int
+dstAddr){
+    /* construct TCP head */
+    char* head = malloc(20 + len); // no options
+    (short* )head[0] = srcPort;
+    (short* )head[1] = dstPort;
+    (int* )head[1] = tcb_cache->seq;
+    (int* )head[2] = tcb_cache->ack;
+    head[13] = 0x50; // first 4-bits being header length (in words)
+    head[14] = flag;
+    (short* )head[8] = 1; // windowsize: 1
+    memcpy(head + 20, pData, len);
+
+    unsigned int header_checksum = 0;
+    for(int i = 0; i < len + 20; i += 2){
+        header_checksum += (head[i] << 8) + head[i + 1];
+    }
+    while(header_checksum >> 16){
+        header_checksum == (header_checksum >> 16) + (header_checksum & 0xFFFF);
+    }
+    header_checksum = ~header_checksum;
+    (short* )head[9] = header_checksum;
+
+    tcp_sendIpPkt(head, 20 + len, srcAddr, dstAddr, 64); // ttl not specified
+
+    if(flag == PACKET_TYPE_SYN && tcb_cache->state == TCP_closed){
+        tcb_cache->state = TCP_synsent;
+    }else if(flag == PACKET_TYPE_FIN_ACK && tcb_cache->state == TCP_established){
+        tcb_cache->state = TCP_finwait1;
+    }
+    return ;
+}
+
+int stud_tcp_socket(int domain, int type, int protocol){
+    TCB* tmp_tcb = new TCB();
+    socket2tcb.insert(pair<int, TCB>(tmp_tcb->socket_number, *tcb));
+    return tmp_tcb->socket_number;
+}
+
+int stud_tcp_connect(int sockfd, struct sockaddr_in* addr, int addrlen){
+    map<int, TCB>::iterator it = socket2tcb.find(sockfd);
+    tcb_cache = it->second;
+    tcb_cache->srcAddr = getIpv4Address();
+    tcb_cache->dstAddr = addr->?; // what is a socket structure pointer?
+    tcb_cache->dstPort = addr->?; // same as above
+
+    stud_tcp_output(NULL, 0, PACKET_TYPE_SYN, tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+
+    char* head = malloc(200);
+    int tmp = -1;
+    while(tmp == -1){
+        tmp = waitIpPacket(head, 1);
+    }
+    if(tmp[14] == PACKET_TYPE_SYN_ACK){
+        tcb_cache->seq = *(int* )head[1];
+        tcb_cache->ack = *(int* )head[2] + 1;
+        stud_tcp_output(NULL, 0, PACKET_TYPE_ACK, tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+        tcb_cache->state = TCP_established;
+        return 0;
+    }else{
+        return -1;
+    }
+    return -1;
+}
+
+int stud_tcp_send(int sockfd, const unsigned char* pData, unsigned short datalen,
+int flags){
+    /* what does "this function will send 'this is a tcp test' to server" mean?
+     * should we ignore pData?
+     */
+    map<int, TCB>::iterator it = socket2tcb.find(sockfd);
+    tcb_cache = it->second;
+    if(tcb_cache->state == TCP_established){
+        stud_tcp_output(pData, datalen, PACKET_TYPE_DATA, tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+
+        char* head = malloc(200);
+        int tmp = -1;
+        while(tmp == -1){
+            tmp = waitIpPacket(head, 1);
+        }
+        if(tmp[14] == PACKET_TYPE_ACK){
+            if((int* )head[2] != tcb_cache->seq + datalen){
+                tcp_DiscardPkt(head, STUD_TCP_TEST_SEQNO_ERROR);
+                return -1;
+            }
+            tcb_cache->seq = (int* )head[2];
+            tcb_cache->ack = (int* )head[1] + datalen;
+            return 0;
+        }
+        return -1;
+    }
+    return -1;
+}
+
+int stud_tcp_recv(int sockfd, const unsigned char* pData, unsigned short datalen,
+int flags){
+    map<int, TCB>::iterator it = socket2tcb.find(sockfd);
+    tcb_cache = it->second;
+    if(tcb_cache->state == TCP_established){
+        char* head = malloc(200);
+        int tmp = -1;
+        while(tmp == -1){
+            tmp = waitIpPacket(head, 1);
+        }
+        memcpy(pData, head + 20, sizeof(head) - 20);
+        // how to send ack(level4 packet) through sendIpPkt(level3 datagram)?
+        stud_tcp_output(NULL, 0, PACKET_TYPE_ACK, tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+        return 0;
+    }
+    return -1;
+}
+
+int stud_tcp_close( int sockfd ){
+    map<int, TCB>::iterator it = socket2tcb.find(sockfd);
+    tcb_cache = it->second;
+
+    if(tcb_cache->state == TCP_established){
+        tcb_cache->state = TCP_finwait1;
+        stud_tcp_output(NULL, 0, PACKET_TYPE_FIN_ACK, tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+        char* head = malloc(200);
+        int tmp = -1;
+        while(tmp == -1){
+            tmp = waitIpPacket(head, 1);
+        }
+        if(head[14] == PACKET_TYPE_ACK){
+            tcb_cache->state = TCP_finwait2;
+            int tmp = -1;
+            while(tmp == -1){
+                tmp = waitIpPacket(head, 1);
+            }
+            if(head[14] == PACKET_TYPE_FIN_ACK){
+                tcb_cache->seq = (int* )head[2];
+                tcb_cache->ack = (int* )head[1]++;
+                stud_tcp_output(NULL, 0, PACKET_TYPE_ACK, , tcb_cache->srcPort, tcb_cache->dstPort, tcb_cache->srcAddr, tcb_cache->dstAddr);
+                tcb_cache->state = TCP_timewait;
+                return 0;
+            }
+            return -1;
+        }
+        return -1;
+    }
+    return -1;
+}
+
+\end{lstlisting}
+
+
+\end{document}

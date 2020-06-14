@@ -1,0 +1,49 @@
+\documentclass{article}
+\usepackage{geometry}
+\usepackage{float}
+\usepackage{fancyhdr}
+\usepackage{extramarks}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{multicol}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{algpseudocode}
+\usetikzlibrary{automata,positioning}
+
+\author{Huang Daoji}
+\title{review: GAN's application on computer vision-2}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{GAN for high resolution generation}
+
+While generative adversarial networks(GAN)\cite{NIPS2014_5423} can generate realistic images, they fail to do so at a larger scale. Some of the reasons they fail are
+
+\begin{itemize}
+    \item  a) the gradient direction becomes more random in high dimension space due to less overlap of the training and generated distributions,
+    \item b) high dimensionality also make the discriminator more easily to differentiate the training and generated images, and
+    \item c) due to memory constraints, large resolution leads to smaller mini-batches, which further compromises training stability.
+\end{itemize}
+
+One way to tackle this issue is to focus on gradient directions. Other metrics have been proposed, including least squares\cite{Mao2017LeastSG} and Wasserstein distance\cite{pmlr-v70-arjovsky17a}, in addition to the original Jensen-Shannon divergence. These methods are useful but not enough to alleviate GAN's instability at large scale.
+
+
+An orthogonal approach aims to change the way GAN is being trained. The key observation is that instead of training all layers from scratch, GAN can be trained step by step, whether it be training a hierarchy of GANs, or training one layer at once. Denton et al.\cite{NIPS2015_5773} inserted a hierarchy of GANs into the Laplacian pyramid, while Huang et al.\cite{8099685} further introduced a pretrained encoder to match intermediate representations. StackGAN\cite{han2017stackgan} and Wang et al. 2017\cite{8579015} both used a two-stage generation scheme to enable high-resolution synthesis. ProGAN\cite{Karras2018ProgressiveGO} further trains GAN in smaller steps: layer by layer, without pre-configured layers. Several tricks are applied to stabilize training: smooth fade-in of new layers, explicitly concatenating standard deviation, and more normalizations, including equalized learning rate, pixelwise normalization. ProGAN achieved more realistic results even using smaller mini-batches and trained faster compared to ones trained from scratch.
+
+
+A seemingly more brute-forcing way to train GAN for high-resolution synthesis is to train them at large scale. In BigGAN\cite{brock2018large}, it has been shown that GAN's performance simply increases as channel numbers and batch sizes grow larger. GAN behaviors at large scale are also studied, including failure when truncation trick applied, mode collapse which only studied at a smaller scale. Several tradeoffs have been found when tackling these issues: the tradeoff between fidelity and variety, between image quality and training stability.
+
+\section{style transfer}
+
+Given a content and a style image, style transfer aims to synthesize an output image which combines the content and style from reference images. A general approach\cite{zheng2019joint, BeautyGlow, Li2018BeautyGANIF, Wu2019DisentanglingCA} is to encode input images to some latent space and synthesize output from these latent vectors. Inspired by AdaIn\cite{huang2017adain}, various methods\cite{zhu2019sean, park2019SPADE} combine these vectors via aligning the distribution of pixels by adjusting the scale and variance of activation in a neural network. Lu et al.\cite{Lu2019ACS} proposed a closed-form solution using technics from optimal transport. Also, due to lack of paired training data, style transfer methods often adapt their own approach to enforcing the separation of content and style, like VGG loss\cite{7780634}, minimizing cycle loss\cite{Lu2017ConditionalCF}, or GAN loss\cite{pix2pixSC2019, ma2017pose}.
+
+
+
+\bibliographystyle{ieeetr}
+\bibliography{ref}
+\end{document}
